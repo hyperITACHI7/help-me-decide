@@ -113,13 +113,16 @@ function buildLargeCatalog(): Omit<CatalogItem, "seededOpenCount">[] {
   for (const template of LARGE_TEMPLATES) {
     VARIANT_SUFFIXES.forEach((variant, i) => {
       const price = template.price + variant.priceDelta;
+      // Varied per item (20-70%), not a flat multiplier — a constant discount
+      // across every item would make the discount-range filter meaningless.
+      const discountPct = 20 + (hash(`${template.slug}-v${i}-disc`) % 51);
       items.push({
         slug: `${template.slug}-v${i}`,
         name: `${template.name}${variant.label}`,
         brand: template.brand,
         category: template.category,
         price,
-        originalPrice: Math.round(price * 1.4),
+        originalPrice: Math.round(price / (1 - discountPct / 100)),
         rating: 3.6 + (hash(template.slug + i) % 14) / 10,
         tags: template.tags,
       });
