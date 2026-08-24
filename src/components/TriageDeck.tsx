@@ -17,11 +17,13 @@ export type TriageItem = {
 
 export function TriageDeck({
   items,
+  candidateIds,
   initialDecidedCount,
   initialKeptCount,
   totalItems,
 }: {
   items: TriageItem[];
+  candidateIds: string[];
   initialDecidedCount: number;
   initialKeptCount: number;
   totalItems: number;
@@ -43,7 +45,7 @@ export function TriageDeck({
     setPending(true);
     setBanner(null);
     try {
-      const result = await decideItem(current.id, direction);
+      const result = await decideItem(current.id, direction, candidateIds);
       setKeptCount(result.keptCount);
       setDecidedCount(result.decidedCount);
       if (result.forced) {

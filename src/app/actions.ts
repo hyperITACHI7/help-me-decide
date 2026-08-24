@@ -17,7 +17,9 @@ export async function startDemo(formData: FormData) {
     throw new Error(`Invalid wishlist variant: ${String(variant)}`);
   }
   await createSeededSession(variant as WishlistVariant);
-  redirect("/wishlist");
+  // Land on the home screen first, matching a real visit's shape (home →
+  // wishlist icon → wishlist) rather than jumping straight past it.
+  redirect("/");
 }
 
 /**

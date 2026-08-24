@@ -1,12 +1,19 @@
-import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import { startDemo } from "@/app/actions";
+import { MyntraHome } from "@/components/MyntraHome";
 
 export default async function LandingPage() {
-  // Returning visitor with a live session — skip straight to the wishlist.
-  const existing = await getSession();
-  if (existing) {
-    redirect("/wishlist");
+  const session = await getSession();
+
+  // Returning visitor with a live session — show the home screen instead of
+  // the demo chooser (F1's actual entry point lives on the wishlist, this
+  // page is just realistic navigational context before it).
+  if (session) {
+    const wishlistCount = await prisma.wishlistItem.count({
+      where: { sessionId: session.id },
+    });
+    return <MyntraHome wishlistCount={wishlistCount} />;
   }
 
   return (

@@ -4,16 +4,40 @@ import { prisma } from "@/lib/prisma";
 import { track } from "@/lib/analytics";
 import { TriageDeck } from "@/components/TriageDeck";
 
-export default async function DecidePage() {
+export default async function DecidePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ items?: string }>;
+}) {
   const session = await getSession();
   if (!session) {
     redirect("/");
   }
 
+  const { items: itemsParam } = await searchParams;
+  const requestedIds = (itemsParam ?? "").split(",").filter(Boolean);
+
+  // Entry is now via the wishlist's selection mode (WishlistGrid) — arriving
+  // here without a valid selection (stale link, direct navigation) has
+  // nothing to triage.
+  if (requestedIds.length < 3) {
+    redirect("/wishlist");
+  }
+
   const [rawItems, decisions] = await Promise.all([
-    prisma.wishlistItem.findMany({ where: { sessionId: session.id } }),
-    prisma.triageDecision.findMany({ where: { sessionId: session.id } }),
+    prisma.wishlistItem.findMany({
+      where: { sessionId: session.id, id: { in: requestedIds } },
+    }),
+    prisma.triageDecision.findMany({
+      where: { sessionId: session.id, itemId: { in: requestedIds } },
+    }),
   ]);
+
+  if (rawItems.length < 3) {
+    redirect("/wishlist");
+  }
+
+  const candidateIds = rawItems.map((i) => i.id);
 
   // Same order F2 already sorted the wishlist into — the highest-signal
   // items are triaged first (problem_statement.md §1 steps 2→3 flow into
@@ -52,6 +76,7 @@ export default async function DecidePage() {
         rating: item.rating,
         category: item.category,
       }))}
+      candidateIds={candidateIds}
       initialDecidedCount={decisions.length}
       initialKeptCount={keptCount}
       totalItems={sorted.length}

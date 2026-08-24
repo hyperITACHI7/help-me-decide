@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { track } from "@/lib/analytics";
-import { ProductCard } from "@/components/ProductCard";
+import { WishlistGrid } from "@/components/WishlistGrid";
 
 export default async function WishlistPage() {
   // EC1/EC2 (edge_case.md): no session cookie, or a dangling one — fail soft
@@ -59,36 +58,18 @@ export default async function WishlistPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-3 py-4 pb-24">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5">
-          {items.map((item) => (
-            <ProductCard
-              key={item.id}
-              item={{
-                id: item.id,
-                name: item.name,
-                brand: item.brand,
-                imageUrl: item.imageUrl,
-                price: item.price,
-                originalPrice: item.originalPrice,
-                rating: item.rating,
-                openCount: item.seededOpenCount + item.liveOpenCount,
-              }}
-            />
-          ))}
-        </div>
-      </main>
-
-      {/* F1: entry point visible on the wishlist without navigation, opt-in
-          only (edge_case.md EC5 — never an interstitial that blocks browsing). */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-surface px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        <Link
-          href="/wishlist/decide"
-          className="block w-full rounded-lg bg-brand py-3 text-center text-sm font-bold text-white"
-        >
-          Help me decide
-        </Link>
-      </div>
+      <WishlistGrid
+        items={items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          brand: item.brand,
+          imageUrl: item.imageUrl,
+          price: item.price,
+          originalPrice: item.originalPrice,
+          rating: item.rating,
+          openCount: item.seededOpenCount + item.liveOpenCount,
+        }))}
+      />
     </div>
   );
 }
