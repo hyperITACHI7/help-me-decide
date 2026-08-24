@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { CatalogProductCard, type CatalogCardItem } from "@/components/CatalogProductCard";
+import { CatalogFilterSidebar, type PriceBand } from "@/components/CatalogFilterSidebar";
 import { discountPercent } from "@/lib/display";
 
 type Item = CatalogCardItem & { category: string };
 
-type PriceBand = "under1000" | "1000-2000" | "2000-3000" | "3000plus";
 const PRICE_BANDS: { key: PriceBand; label: string; test: (p: number) => boolean }[] = [
   { key: "under1000", label: "Under Rs. 1,000", test: (p) => p < 1000 },
   { key: "1000-2000", label: "Rs. 1,000 - Rs. 2,000", test: (p) => p >= 1000 && p < 2000 },
@@ -102,62 +102,24 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
       </h1>
 
       <div className="mt-4 flex flex-col gap-6 md:flex-row">
-        <aside className="w-full shrink-0 md:w-56">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold uppercase tracking-wide text-ink">Filters</p>
-            {anyFilterActive && (
-              <button type="button" onClick={clearAll} className="text-xs font-semibold text-brand">
-                Clear all
-              </button>
-            )}
-          </div>
-
-          <FilterSection title="Category">
-            {[...categoryCounts.entries()].map(([category, count]) => (
-              <FilterCheckbox
-                key={category}
-                label={category}
-                count={count}
-                checked={categories.has(category)}
-                onChange={() => toggleSet(categories, setCategories, category)}
-              />
-            ))}
-          </FilterSection>
-
-          <FilterSection title="Brand">
-            {[...brandCounts.entries()].map(([brand, count]) => (
-              <FilterCheckbox
-                key={brand}
-                label={brand}
-                count={count}
-                checked={brands.has(brand)}
-                onChange={() => toggleSet(brands, setBrands, brand)}
-              />
-            ))}
-          </FilterSection>
-
-          <FilterSection title="Price">
-            {PRICE_BANDS.map((band) => (
-              <FilterCheckbox
-                key={band.key}
-                label={band.label}
-                checked={priceBand === band.key}
-                onChange={() => setPriceBand(priceBand === band.key ? null : band.key)}
-              />
-            ))}
-          </FilterSection>
-
-          <FilterSection title="Discount range">
-            {DISCOUNT_TIERS.map((tier) => (
-              <FilterCheckbox
-                key={tier}
-                label={`${tier}% and above`}
-                checked={discountTier === tier}
-                onChange={() => setDiscountTier(discountTier === tier ? null : tier)}
-              />
-            ))}
-          </FilterSection>
-        </aside>
+        <div className="shrink-0 md:w-[300px]">
+          <CatalogFilterSidebar
+            categoryCounts={[...categoryCounts.entries()]}
+            brandCounts={[...brandCounts.entries()]}
+            priceBands={PRICE_BANDS}
+            discountTiers={DISCOUNT_TIERS}
+            categories={categories}
+            brands={brands}
+            priceBand={priceBand}
+            discountTier={discountTier}
+            anyFilterActive={anyFilterActive}
+            onToggleCategory={(value) => toggleSet(categories, setCategories, value)}
+            onToggleBrand={(value) => toggleSet(brands, setBrands, value)}
+            onSetPriceBand={setPriceBand}
+            onSetDiscountTier={setDiscountTier}
+            onClearAll={clearAll}
+          />
+        </div>
 
         <div className="flex-1">
           <div className="flex items-center gap-2 border-b border-border pb-3">
@@ -192,39 +154,5 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
         </div>
       </div>
     </div>
-  );
-}
-
-function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mt-4 border-t border-border pt-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-ink">{title}</p>
-      <div className="mt-2 space-y-2">{children}</div>
-    </div>
-  );
-}
-
-function FilterCheckbox({
-  label,
-  count,
-  checked,
-  onChange,
-}: {
-  label: string;
-  count?: number;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2 text-xs text-ink">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="h-3.5 w-3.5 accent-brand"
-      />
-      <span className="flex-1 truncate">{label}</span>
-      {count !== undefined && <span className="text-muted">({count})</span>}
-    </label>
   );
 }
