@@ -1,0 +1,152 @@
+// Data model for "Help Me Decide" — see ../../phased_architecture.md §3 for the design rationale
+// and ../../edge_case.md §2.1 for why Vote is keyed per-item, not per-link.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WishlistVariant {
+  small
+  large
+}
+
+enum TriageDirection {
+  keep
+  discard
+}
+
+enum ShortlistTierName {
+  best_pick
+  most_trending
+  value_for_money
+}
+
+model Session {
+  id              String          @id @default(cuid())
+  createdAt       DateTime        @default(now())
+  lastSeenAt      DateTime        @updatedAt
+  wishlistVariant WishlistVariant
+
+  items           WishlistItem[]
+  triageDecisions TriageDecision[]
+  shortlists      Shortlist[]
+  analyticsEvents AnalyticsEvent[]
+}
+
+// No discount/priceDrop/coupon field anywhere in this schema — structural
+// enforcement of N1/N5 (see phased_architecture.md §6.3). originalPrice
+// exists only to render Myntra's real product-card convention (strikethrough
+// price); it is never read by the AI prompts (edge_case.md EC16/EC17 guard
+// against exactly that leak).
+model WishlistItem {
+  id              String   @id @default(cuid())
+  sessionId       String
+  session         Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name            String
+  brand           String
+  imageUrl        String
+  price           Int
+  originalPrice   Int?
+  rating          Float
+  category        String
+  tags            String[]
+  seededOpenCount Int      @default(0)
+  liveOpenCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  triageDecisions TriageDecision[]
+  shortlistTiers  ShortlistTier[]
+  votes           Vote[]
+
+  @@index([sessionId])
+}
+
+// One row per (session, item) — swiping a card twice upserts this row rather
+// than inserting a duplicate (edge_case.md EC9/EC10).
+model TriageDecision {
+  id        String          @id @default(cuid())
+  sessionId String
+  session   Session         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      WishlistItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  direction TriageDirection
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([sessionId, itemId])
+}
+
+// separable = false is reserved for a genuine "too similar to tell apart"
+// model judgment. It is NOT used for "fewer than 3 candidates" — that case is
+// prevented structurally by the triage floor (edge_case.md §2.2/§2.3), so the
+// two states are never conflated.
+model Shortlist {
+  id               String   @id @default(cuid())
+  sessionId        String
+  session          Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  narrowingAnswers Json
+  separable        Boolean
+  honestyReason    String?
+
+  tiers     ShortlistTier[]
+  shareLink ShareLink?
+}
+
+model ShortlistTier {
+  id          String            @id @default(cuid())
+  shortlistId String
+  shortlist   Shortlist         @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  tier        ShortlistTierName
+  itemId      String
+  item        WishlistItem      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  reason      String
+
+  @@unique([shortlistId, tier])
+  @@unique([shortlistId, itemId])
+}
+
+model ShareLink {
+  id          String    @id @default(cuid())
+  shortlistId String    @unique
+  shortlist   Shortlist @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  token       String    @unique
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  votes Vote[]
+}
+
+// Keyed per (link, voter, item) — resolves edge_case.md §2.1: each of the 3
+// shared items gets its own like/dislike swipe from a friend, matching F7's
+// "swipe votes" (plural) and mirroring step 3's own triage mechanic.
+// voterFingerprint is a random localStorage id, never an identity (R6/N3).
+model Vote {
+  id               String       @id @default(cuid())
+  shareLinkId      String
+  shareLink        ShareLink    @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+  itemId           String
+  item             WishlistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  voterFingerprint String
+  liked            Boolean
+  createdAt        DateTime     @default(now())
+
+  @@unique([shareLinkId, voterFingerprint, itemId])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  eventName String
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([eventName])
+  @@index([sessionId])
+}

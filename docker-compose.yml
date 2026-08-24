@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    container_name: help-me-decide-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: helpmedecide
+      POSTGRES_PASSWORD: helpmedecide_dev_only
+      POSTGRES_DB: helpmedecide
+    ports:
+      - "5435:5432"
+    volumes:
+      - help-me-decide-pg-data:/var/lib/postgresql/18/docker
+
+volumes:
+  help-me-decide-pg-data:
