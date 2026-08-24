@@ -26,7 +26,7 @@ export function WishlistGrid({ items }: { items: ProductCardItem[] }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <main className="flex-1 px-3 py-4 pb-24">
+      <div className="flex-1 px-3 py-4 pb-24">
         {selecting ? (
           <p className="mb-3 text-xs font-medium text-muted">
             Tap the items you&apos;re deciding between.
@@ -48,7 +48,7 @@ export function WishlistGrid({ items }: { items: ProductCardItem[] }) {
             />
           ))}
         </div>
-      </main>
+      </div>
 
       {/* F1: entry point visible on the wishlist without navigation, opt-in
           only (edge_case.md EC5 — never an interstitial that blocks browsing).

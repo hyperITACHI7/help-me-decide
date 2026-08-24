@@ -36,14 +36,9 @@ export default async function WishlistPage() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b border-border bg-surface px-4 pb-3 pt-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-ink">Wishlist</h1>
-            <p className="text-xs text-muted">{items.length} items</p>
-          </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-canvas text-ink">
-            🛍
-          </div>
+        <div>
+          <h1 className="text-lg font-bold text-ink">Wishlist</h1>
+          <p className="text-xs text-muted">{items.length} items</p>
         </div>
 
         <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
