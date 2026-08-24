@@ -63,11 +63,13 @@ export async function callGroqJson<T = Record<string, unknown>>(
     // Network-level failure OR a timed-out request (AbortSignal.timeout) —
     // same "infra failure" bucket as a non-2xx response, never silently
     // swallowed and never left to hang past the §3.3 latency NFR.
+    console.error(`[groq:${tier}] request failed`, err);
     return { configured: true, error: `Groq request failed: ${String(err)}` };
   }
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => "");
+    console.error(`[groq:${tier}] API error ${res.status}`, errBody.slice(0, 500));
     return {
       configured: true,
       error: `Groq API error ${res.status}: ${errBody.slice(0, 300)}`,
