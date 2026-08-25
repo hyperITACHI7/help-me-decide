@@ -138,7 +138,8 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
       </h1>
 
       <div className="mt-4 flex flex-col gap-6 md:flex-row">
-        <div className="shrink-0">
+        {/* Reserves only the collapsed rail; the panel itself is absolute. */}
+        <div className="relative shrink-0 md:w-[60px]">
           <CatalogFilterSidebar
             categoryCounts={[...categoryCounts.entries()]}
             brandCounts={[...brandCounts.entries()]}
@@ -157,7 +158,9 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
           />
         </div>
 
-        <div className="min-w-0 flex-1">
+        {/* pr mirrors the rail (60px) plus the row gap (24px) so the grid sits
+            symmetrically between the two page edges. */}
+        <div className="min-w-0 flex-1 md:pr-[84px]">
           <div className="flex items-center justify-end border-b border-border pb-3">
             <SortDropdown options={SORTS} value={sort} onChange={setSort} />
           </div>
@@ -172,8 +175,12 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
               onMouseLeave={() => setHoveredIndex(null)}
             >
               {filtered.map((item, idx) => (
+                // 5% inset each side renders the card at 90% of its grid
+                // track, widening the visual gutter. The hover surface lives
+                // inside so it shrinks with the card rather than spanning the
+                // full track.
+                <div key={item.id} className="px-[5%]">
                 <div
-                  key={item.id}
                   className="relative block p-2"
                   onMouseEnter={() => handleCardEnter(idx)}
                 >
@@ -201,6 +208,7 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
                     )}
                   </AnimatePresence>
                   <CatalogProductCard item={item} onAddToWishlist={addToWishlist} />
+                </div>
                 </div>
               ))}
             </div>
