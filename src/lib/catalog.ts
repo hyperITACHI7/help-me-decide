@@ -147,34 +147,54 @@ export function catalogFor(variant: "small" | "large"): CatalogItem[] {
   return variant === "small" ? SMALL_WISHLIST : LARGE_WISHLIST;
 }
 
-// Deterministic, fully-local placeholder art (inline SVG data URI) — no
-// external image host to depend on, so cards render identically offline and
-// in a network-restricted deploy sandbox, not just when a CDN happens to be
-// reachable.
-const PLACEHOLDER_PALETTE = [
-  "#FDE7ED",
-  "#E7F1FD",
-  "#EAF7EE",
-  "#FDF3E3",
-  "#F1EAFB",
-  "#E3F6F5",
-];
+// Real product photos via LoremFlickr — keyword-searched Flickr photos,
+// hotlinked, no API key required. Chosen over a random/generic placeholder
+// host (e.g. Picsum) specifically so the image actually resembles the
+// product's category instead of being arbitrary stock art. `?lock=N` pins one
+// specific photo per product rather than rotating on every load — otherwise
+// the same wishlist item would show a different photo on every page view.
+//
+// This does reintroduce a live third-party dependency the app had
+// deliberately avoided (see the git history for why inline SVGs replaced an
+// earlier external host): every <img> rendering a product photo pairs this
+// with handleImageError (src/lib/imageFallback.ts) so an unreachable CDN
+// degrades to a neutral placeholder instead of a broken-image icon.
+//
+// Variant SKUs (the "large" catalog's -v0/-v1/-v2 colourway suffixes) share
+// their base product's photo rather than each getting a unique shot, matching
+// how most real catalogs handle closely related SKUs when a colourway-
+// specific photo isn't shot.
+const VARIANT_SUFFIX = /-v\d+$/;
 
-function initialsFor(name: string): string {
-  return name
-    .split(" ")
-    .filter((w) => w.length > 0)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
-}
+const PRODUCT_KEYWORDS: Record<string, string> = {
+  "urban-thread-olive-field-jacket": "olive,field-jacket",
+  "northgear-quilted-bomber": "bomber-jacket,black",
+  "streetkraft-denim-trucker": "denim-jacket",
+  "cahoot-classic-shirt": "formal-shirt,mens",
+  "flexfit-crew-tee": "graphic-tshirt",
+  "strideone-running-shoes": "running-shoes",
+  "denimforge-slim-trouser": "formal-trousers",
+  "urban-thread-hoodie": "hoodie,fleece",
+  "cahoot-linen-shirt": "linen-shirt",
+  "flexfit-polo": "polo-shirt",
+  "strideone-canvas-sneaker": "canvas-sneakers",
+  "denimforge-cargo-trouser": "cargo-pants",
+  "northgear-puffer-vest": "puffer-vest",
+  "cahoot-check-shirt": "flannel-shirt",
+  "flexfit-henley": "henley-shirt",
+  "strideone-trail-shoes": "trail-shoes,hiking",
+  "denimforge-jogger": "jogger-pants",
+  "streetkraft-varsity-jacket": "varsity-jacket",
+  "cahoot-oxford-shirt": "oxford-shirt,white",
+  "flexfit-oversized-tee": "oversized-tshirt",
+  "strideone-slip-on": "loafers,shoes",
+  "denimforge-formal-trouser": "formal-trousers,navy",
+  "northgear-windbreaker": "windbreaker-jacket",
+};
 
-export function imageUrlFor(slug: string, brand?: string): string {
-  const bg = PLACEHOLDER_PALETTE[hash(slug) % PLACEHOLDER_PALETTE.length];
-  const label = brand ? initialsFor(brand) : slug.slice(0, 2).toUpperCase();
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="650" viewBox="0 0 500 650">
-    <rect width="500" height="650" fill="${bg}" />
-    <text x="250" y="335" font-family="Arial, sans-serif" font-size="96" font-weight="700" fill="#282C3F" fill-opacity="0.35" text-anchor="middle" dominant-baseline="middle">${label}</text>
-  </svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+export function imageUrlFor(slug: string): string {
+  const baseSlug = slug.replace(VARIANT_SUFFIX, "");
+  const keyword = PRODUCT_KEYWORDS[baseSlug] ?? "clothing";
+  const lock = hash(baseSlug) % 10000;
+  return `https://loremflickr.com/500/650/${keyword}?lock=${lock}`;
 }

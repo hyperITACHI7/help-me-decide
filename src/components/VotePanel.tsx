@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { castVote } from "@/app/vote/[token]/actions";
 import { SwipeCardStack } from "@/components/SwipeCardStack";
+import { handleImageError } from "@/lib/imageFallback";
 
 type VoteItem = {
   id: string;
@@ -29,12 +30,13 @@ function VoteCardVisual({ item }: { item: VoteItem }) {
   return (
     <div className="w-full max-w-xs overflow-hidden rounded-2xl bg-surface shadow-lg">
       <div className="relative aspect-[3/4] w-full bg-canvas">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- hotlinked photo */}
         <img
           src={item.imageUrl}
           alt={item.name}
           className="h-full w-full object-cover"
           draggable={false}
+          onError={handleImageError}
         />
       </div>
       <div className="p-3">

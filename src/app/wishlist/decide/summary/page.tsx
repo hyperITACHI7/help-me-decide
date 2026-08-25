@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { ProductImage } from "@/components/ProductImage";
 
 export default async function TriageSummaryPage() {
   const session = await getSession();
@@ -35,8 +36,7 @@ export default async function TriageSummaryPage() {
         {kept.map((item) => (
           <div key={item.id} className="overflow-hidden rounded-lg bg-surface">
             <div className="aspect-[3/4] w-full overflow-hidden rounded-lg bg-canvas">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
-              <img
+              <ProductImage
                 src={item.imageUrl}
                 alt={item.name}
                 className="h-full w-full object-cover"

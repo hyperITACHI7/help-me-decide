@@ -41,7 +41,7 @@ export async function createSeededSession(variant: WishlistVariant) {
         create: items.map((item) => ({
           name: item.name,
           brand: item.brand,
-          imageUrl: imageUrlFor(item.slug, item.brand),
+          imageUrl: imageUrlFor(item.slug),
           price: item.price,
           originalPrice: item.originalPrice,
           rating: item.rating,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { IconEye, IconShare2, IconSparkles } from "@tabler/icons-react";
 import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
+import { handleImageError } from "@/lib/imageFallback";
 
 export type HighlightItem = {
   id: string;
@@ -53,8 +54,13 @@ function EmptyHeader({ children }: { children: React.ReactNode }) {
 function Thumb({ item, className }: { item: HighlightItem; className?: string }) {
   return (
     <div className={className ?? "h-full w-14 shrink-0 overflow-hidden rounded-lg bg-canvas"}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
-      <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+      {/* eslint-disable-next-line @next/next/no-img-element -- hotlinked photo */}
+      <img
+        src={item.imageUrl}
+        alt={item.name}
+        className="h-full w-full object-cover"
+        onError={handleImageError}
+      />
     </div>
   );
 }
@@ -75,11 +81,12 @@ export function WishlistHighlights({ data }: { data: WishlistHighlightsData }) {
             <div className="relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-lg bg-canvas">
               {/* shrink-0 above matters: the card has a fixed two-row height,
                   and flex would otherwise squash the box and break the 3:4. */}
-              {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- hotlinked photo */}
               <img
                 src={mostViewed.imageUrl}
                 alt={mostViewed.name}
                 className="h-full w-full object-cover"
+                onError={handleImageError}
               />
               <span className="absolute left-3 top-3 rounded-full bg-surface/95 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-ink shadow-sm">
                 Most viewed

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { removeWishlistItem } from "@/app/wishlist/clean/actions";
 import { SwipeCardStack } from "@/components/SwipeCardStack";
+import { handleImageError } from "@/lib/imageFallback";
 
 export type CleanItem = {
   id: string;
@@ -25,12 +26,13 @@ function CleanCardVisual({ item }: { item: CleanItem }) {
   return (
     <div className="w-full max-w-xs overflow-hidden rounded-2xl bg-surface shadow-lg">
       <div className="relative aspect-[3/4] w-full bg-canvas">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- hotlinked photo */}
         <img
           src={item.imageUrl}
           alt={item.name}
           className="h-full w-full object-cover"
           draggable={false}
+          onError={handleImageError}
         />
         <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded bg-surface/95 px-1.5 py-0.5 text-xs font-semibold text-ink shadow-sm">
           {item.rating.toFixed(1)}

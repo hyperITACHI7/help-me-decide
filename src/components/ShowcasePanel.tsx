@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { revokeShowcase } from "@/app/wishlist/showcaseActions";
+import { handleImageError } from "@/lib/imageFallback";
 
 type TallyRow = {
   id: string;
@@ -115,8 +116,13 @@ export function ShowcasePanel({
             className="flex items-center gap-3 rounded-lg border border-border bg-surface p-2"
           >
             <div className="h-16 w-12 shrink-0 overflow-hidden rounded bg-canvas">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
-              <img src={row.imageUrl} alt={row.name} className="h-full w-full object-cover" />
+              {/* eslint-disable-next-line @next/next/no-img-element -- hotlinked photo */}
+              <img
+                src={row.imageUrl}
+                alt={row.name}
+                className="h-full w-full object-cover"
+                onError={handleImageError}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-ink">{row.brand}</p>
