@@ -1,8 +1,10 @@
 "use client";
 
 import { IconHeart } from "@tabler/icons-react";
+import { openItem } from "@/app/actions";
 import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
 import { reviewCountFor, formatReviewCount, discountPercent } from "@/lib/display";
+import { cn } from "@/lib/utils";
 
 export type CatalogCardItem = {
   id: string;
@@ -19,17 +21,31 @@ export type CatalogCardItem = {
  * review count overlaid bottom-left, then brand / name / price-strike-discount
  * stacked underneath.
  */
+export type CardSelection = {
+  selected: boolean;
+  onToggle: () => void;
+};
+
 export function CatalogProductCard({
   item,
   onAddToWishlist,
+  selection,
+  openCount,
+  submitOpenItem = false,
 }: {
   item: CatalogCardItem;
   onAddToWishlist?: (itemId: string) => void;
+  /** When set the card becomes a tap-to-select tile (wishlist triage entry). */
+  selection?: CardSelection;
+  /** F2's revealed-preference signal, shown on the wishlist. */
+  openCount?: number;
+  /** Makes the whole card the "open this item" tap target that feeds F2. */
+  submitOpenItem?: boolean;
 }) {
   const pct = discountPercent(item.price, item.originalPrice);
   const reviews = reviewCountFor(item.id);
 
-  return (
+  const body = (
     <div className="group/product relative z-20 h-full">
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-t-sm">
         <DirectionAwareHover
@@ -51,18 +67,40 @@ export function CatalogProductCard({
           </span>
         )}
 
-        {/* Pops up over the image, not below it. CSS-driven so it stays
-            reliable regardless of the image's motion variants. */}
-        <div className="absolute inset-x-0 bottom-0 z-30 translate-y-full p-2 opacity-0 transition-all duration-200 group-hover/product:translate-y-0 group-hover/product:opacity-100">
-          <button
-            type="button"
-            onClick={() => onAddToWishlist?.(item.id)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-border bg-surface py-2 text-xs font-bold uppercase tracking-wide text-ink shadow-sm transition hover:border-brand hover:text-brand"
+        {selection && (
+          <span
+            className={cn(
+              "absolute right-2 top-2 z-40 flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-bold shadow-sm",
+              selection.selected
+                ? "border-brand bg-brand text-white"
+                : "border-border bg-surface/90 text-transparent",
+            )}
           >
-            <IconHeart className="h-4 w-4" />
-            Add to Wishlist
-          </button>
-        </div>
+            ✓
+          </span>
+        )}
+
+        {openCount !== undefined && !selection && (
+          <span className="pointer-events-none absolute bottom-2 right-2 z-40 inline-flex items-center rounded bg-ink/70 px-1.5 py-0.5 text-[10px] font-medium text-white transition-opacity duration-200 group-hover/product:opacity-0">
+            opened {openCount}×
+          </span>
+        )}
+
+        {/* Pops up over the image, not below it. CSS-driven so it stays
+            reliable regardless of the image's motion variants. Suppressed in
+            selection mode, where the whole card is the tap target. */}
+        {onAddToWishlist && !selection && (
+          <div className="absolute inset-x-0 bottom-0 z-30 translate-y-full p-2 opacity-0 transition-all duration-200 group-hover/product:translate-y-0 group-hover/product:opacity-100">
+            <button
+              type="button"
+              onClick={() => onAddToWishlist(item.id)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-border bg-surface py-2 text-xs font-bold uppercase tracking-wide text-ink shadow-sm transition hover:border-brand hover:text-brand"
+            >
+              <IconHeart className="h-4 w-4" />
+              Add to Wishlist
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="px-2 pb-3 pt-2">
@@ -80,4 +118,35 @@ export function CatalogProductCard({
       </div>
     </div>
   );
+
+  if (selection) {
+    return (
+      <button
+        type="button"
+        onClick={selection.onToggle}
+        aria-pressed={selection.selected}
+        className={cn(
+          "block w-full rounded-sm text-left ring-2",
+          selection.selected ? "ring-brand" : "ring-transparent",
+        )}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  if (submitOpenItem) {
+    return (
+      <form action={openItem}>
+        <input type="hidden" name="itemId" value={item.id} />
+        {/* The whole card is the "open this item" tap target (F2's revealed-
+            preference signal, edge_case.md EC4). */}
+        <button type="submit" className="block w-full text-left">
+          {body}
+        </button>
+      </form>
+    );
+  }
+
+  return body;
 }

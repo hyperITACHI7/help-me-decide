@@ -31,40 +31,19 @@ export default async function WishlistPage() {
   // wishlist_viewed (phased_architecture.md §5 Phase 5).
   await track("wishlist_viewed", { sessionId: session.id });
 
-  const categories = Array.from(new Set(items.map((i) => i.category)));
-
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b border-border bg-surface px-4 pb-3 pt-4">
-        <div>
-          <h1 className="text-lg font-bold text-ink">Wishlist</h1>
-          <p className="text-xs text-muted">{items.length} items</p>
-        </div>
-
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
-          {categories.map((category) => (
-            <span
-              key={category}
-              className="whitespace-nowrap rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-ink"
-            >
-              {category}
-            </span>
-          ))}
-        </div>
-      </header>
-
-      <WishlistGrid
-        items={items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          brand: item.brand,
-          imageUrl: item.imageUrl,
-          price: item.price,
-          originalPrice: item.originalPrice,
-          rating: item.rating,
-          openCount: item.seededOpenCount + item.liveOpenCount,
-        }))}
-      />
-    </div>
+    <WishlistGrid
+      items={items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        brand: item.brand,
+        imageUrl: item.imageUrl,
+        price: item.price,
+        originalPrice: item.originalPrice,
+        rating: item.rating,
+        category: item.category,
+        openCount: item.seededOpenCount + item.liveOpenCount,
+      }))}
+    />
   );
 }

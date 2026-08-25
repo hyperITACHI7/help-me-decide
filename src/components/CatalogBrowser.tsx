@@ -37,7 +37,29 @@ function countBy<T extends string>(items: Item[], pick: (i: Item) => T) {
   return counts;
 }
 
-export function CatalogBrowser({ items }: { items: Item[] }) {
+export function CatalogBrowser({
+  items,
+  title = "All items",
+  breadcrumb = "All items",
+  selection,
+  showOpenCount = false,
+  showAddToWishlist = true,
+  submitOpenItem = false,
+  footer,
+}: {
+  items: Item[];
+  title?: string;
+  breadcrumb?: string;
+  /** Present while the wishlist is picking triage candidates. */
+  selection?: {
+    selectedIds: Set<string>;
+    onToggle: (id: string) => void;
+  };
+  showOpenCount?: boolean;
+  showAddToWishlist?: boolean;
+  submitOpenItem?: boolean;
+  footer?: React.ReactNode;
+}) {
   // Rounded out to the step so the slider ends on clean rupee values.
   const priceBounds = useMemo<[number, number]>(() => {
     if (items.length === 0) return [0, 10000];
@@ -131,13 +153,10 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
   return (
     <div className="px-4 py-4">
       <p className="text-xs text-muted">
-        Home <span className="mx-1">/</span> All items
+        Home <span className="mx-1">/</span> {breadcrumb}
       </p>
-      <h1 className="mt-1 text-lg font-bold text-ink">
-        All items <span className="font-normal text-muted">— {filtered.length} items</span>
-      </h1>
 
-      <div className="mt-4 flex flex-col gap-6 md:flex-row">
+      <div className="mt-3 flex flex-col gap-6 md:flex-row">
         {/* Reserves only the collapsed rail; the panel itself is absolute. */}
         <div className="relative shrink-0 md:w-[60px]">
           <CatalogFilterSidebar
@@ -161,7 +180,13 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
         {/* pr mirrors the rail (60px) plus the row gap (24px) so the grid sits
             symmetrically between the two page edges. */}
         <div className="min-w-0 flex-1 md:pr-[84px]">
-          <div className="flex items-center justify-end border-b border-border pb-3">
+          {/* Title and sort share this row — right-aligning the sort on its
+              own line left ~1160px of dead space above the grid. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+            <h1 className="text-lg font-bold text-ink">
+              {title}{" "}
+              <span className="font-normal text-muted">— {filtered.length} items</span>
+            </h1>
             <SortDropdown options={SORTS} value={sort} onChange={setSort} />
           </div>
 
@@ -207,7 +232,20 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
                       />
                     )}
                   </AnimatePresence>
-                  <CatalogProductCard item={item} onAddToWishlist={addToWishlist} />
+                  <CatalogProductCard
+                    item={item}
+                    onAddToWishlist={showAddToWishlist ? addToWishlist : undefined}
+                    openCount={showOpenCount ? item.openCount : undefined}
+                    submitOpenItem={submitOpenItem}
+                    selection={
+                      selection
+                        ? {
+                            selected: selection.selectedIds.has(item.id),
+                            onToggle: () => selection.onToggle(item.id),
+                          }
+                        : undefined
+                    }
+                  />
                 </div>
                 </div>
               ))}
@@ -215,6 +253,8 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
           )}
         </div>
       </div>
+
+      {footer}
     </div>
   );
 }

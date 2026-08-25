@@ -2,11 +2,17 @@
 
 import { useState } from "react";
 import { startTriageWithSelection } from "@/app/wishlist/decide/actions";
-import { ProductCard, type ProductCardItem } from "@/components/ProductCard";
+import { CatalogBrowser } from "@/components/CatalogBrowser";
+import type { CatalogCardItem } from "@/components/CatalogProductCard";
 
 const MIN_SELECTION = 3;
 
-export function WishlistGrid({ items }: { items: ProductCardItem[] }) {
+export type WishlistItem = CatalogCardItem & {
+  category: string;
+  openCount: number;
+};
+
+export function WishlistGrid({ items }: { items: WishlistItem[] }) {
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -25,69 +31,59 @@ export function WishlistGrid({ items }: { items: ProductCardItem[] }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex-1 px-3 py-4 pb-24">
-        {selecting ? (
-          <p className="mb-3 text-xs font-medium text-muted">
-            Tap the items you&apos;re deciding between.
-          </p>
-        ) : null}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5">
-          {items.map((item) => (
-            <ProductCard
-              key={item.id}
-              item={item}
-              selection={
-                selecting
-                  ? {
-                      selected: selectedIds.has(item.id),
-                      onToggle: () => toggle(item.id),
-                    }
-                  : undefined
-              }
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* F1: entry point visible on the wishlist without navigation, opt-in
-          only (edge_case.md EC5 — never an interstitial that blocks browsing).
-          Selection replaces "swipe the whole wishlist" as the way a shopper
-          builds the candidate set — they pick exactly which items they're
-          torn between first. */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-surface px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        {!selecting ? (
-          <button
-            type="button"
-            onClick={() => setSelecting(true)}
-            className="block w-full rounded-lg bg-brand py-3 text-center text-sm font-bold text-white"
-          >
-            Help me decide
-          </button>
-        ) : (
-          <form action={startTriageWithSelection} className="flex items-center gap-2">
-            {Array.from(selectedIds).map((id) => (
-              <input key={id} type="hidden" name="itemIds" value={id} />
-            ))}
+    <CatalogBrowser
+      items={items}
+      title="Wishlist"
+      breadcrumb="Wishlist"
+      showOpenCount
+      // "Add to Wishlist" is meaningless on the wishlist itself; opening an
+      // item is what feeds F2 here.
+      showAddToWishlist={false}
+      submitOpenItem={!selecting}
+      selection={
+        selecting ? { selectedIds, onToggle: toggle } : undefined
+      }
+      footer={
+        /* F1: entry point visible on the wishlist without navigation, opt-in
+           only (edge_case.md EC5 — never an interstitial that blocks
+           browsing). Selection is how a shopper builds the candidate set. */
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+          {!selecting ? (
             <button
               type="button"
-              onClick={cancelSelecting}
-              className="rounded-lg border border-border px-4 py-3 text-sm font-semibold text-ink"
+              onClick={() => setSelecting(true)}
+              className="mx-auto block w-full max-w-md rounded-lg bg-brand py-3 text-center text-sm font-bold text-white"
             >
-              Cancel
+              Help me decide
             </button>
-            <button
-              type="submit"
-              disabled={selectedIds.size < MIN_SELECTION}
-              className="flex-1 rounded-lg bg-brand py-3 text-center text-sm font-bold text-white disabled:opacity-40"
+          ) : (
+            <form
+              action={startTriageWithSelection}
+              className="mx-auto flex max-w-md items-center gap-2"
             >
-              {selectedIds.size < MIN_SELECTION
-                ? `Select at least ${MIN_SELECTION} (${selectedIds.size} picked)`
-                : `Help me decide (${selectedIds.size} selected)`}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+              {Array.from(selectedIds).map((id) => (
+                <input key={id} type="hidden" name="itemIds" value={id} />
+              ))}
+              <button
+                type="button"
+                onClick={cancelSelecting}
+                className="rounded-lg border border-border px-4 py-3 text-sm font-semibold text-ink"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={selectedIds.size < MIN_SELECTION}
+                className="flex-1 rounded-lg bg-brand py-3 text-center text-sm font-bold text-white disabled:opacity-40"
+              >
+                {selectedIds.size < MIN_SELECTION
+                  ? `Select at least ${MIN_SELECTION} (${selectedIds.size} picked)`
+                  : `Help me decide (${selectedIds.size} selected)`}
+              </button>
+            </form>
+          )}
+        </div>
+      }
+    />
   );
 }
