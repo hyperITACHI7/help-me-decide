@@ -1,14 +1,11 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { IconMenu2, IconX } from "@tabler/icons-react";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useMotionValueEvent,
-} from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+
+const SHRINK_AFTER_PX = 100;
 
 
 interface NavbarProps {
@@ -51,19 +48,17 @@ interface MobileNavMenuProps {
 
 export const Navbar = ({ children, className }: NavbarProps) => {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollY } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"],
-  });
   const [visible, setVisible] = useState<boolean>(false);
 
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    if (latest > 100) {
-      setVisible(true);
-    } else {
-      setVisible(false);
-    }
-  });
+  // A plain window listener rather than `useScroll({ target: ref })`: this
+  // navbar is sticky, so its own box never moves relative to the viewport and
+  // a target-scoped offset would never advance past 0.
+  useEffect(() => {
+    const update = () => setVisible(window.scrollY > SHRINK_AFTER_PX);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   return (
     <motion.div
@@ -86,25 +81,19 @@ export const Navbar = ({ children, className }: NavbarProps) => {
 export const NavBody = ({ children, className, visible }: NavBodyProps) => {
   return (
     <motion.div
-      animate={{
-        backdropFilter: visible ? "blur(10px)" : "none",
-        boxShadow: visible
-          ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(34, 42, 53, 0.04), 0 0 4px rgba(34, 42, 53, 0.08), 0 16px 68px rgba(47, 48, 55, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1) inset"
-          : "none",
-        width: visible ? "40%" : "100%",
-        y: visible ? 20 : 0,
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 50,
-      }}
-      style={{
-        minWidth: "800px",
-      }}
+      data-visible={visible ? "true" : "false"}
+      style={{ maxWidth: "100%" }}
+      // Size/shape are driven by CSS transitions rather than motion's
+      // `animate`: motion applies transforms here but silently drops the
+      // non-transform layout properties (width/border-radius/box-shadow).
       className={cn(
-        "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex dark:bg-transparent",
-        visible && "bg-white/80 dark:bg-neutral-950/80",
+        "relative z-[60] mx-auto hidden flex-row items-center justify-between gap-4 self-start bg-white px-6 py-2 lg:flex dark:bg-neutral-950",
+        "transition-[width,border-radius,box-shadow,transform] duration-300 ease-out",
+        // Full-bleed to the screen edges at rest, shrinking to the
+        // max-w-7xl (1280px) reading width once scrolled.
+        visible
+          ? "w-[1280px] translate-y-5 rounded-full bg-white/80 shadow-lg backdrop-blur-md dark:bg-neutral-950/80"
+          : "w-full translate-y-0 rounded-none",
         className,
       )}
     >
@@ -119,8 +108,11 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
   return (
     <motion.div
       onMouseLeave={() => setHovered(null)}
+      // Laid out in normal flow (not `absolute inset-0`) so the logo and the
+      // search/icon group can never overlap it as the bar resizes, and so the
+      // hover pill is not stacked underneath their z-20.
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 lg:flex lg:space-x-2",
+        "relative z-20 hidden min-w-0 flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 lg:flex lg:space-x-2",
         className,
       )}
     >
@@ -128,17 +120,17 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
         <a
           onMouseEnter={() => setHovered(idx)}
           onClick={onItemClick}
-          className="relative px-4 py-2 text-neutral-600 dark:text-neutral-300"
+          className="relative whitespace-nowrap px-4 py-2 text-neutral-600 dark:text-neutral-300"
           key={`link-${idx}`}
           href={item.link}
         >
           {hovered === idx && (
             <motion.div
               layoutId="hovered"
-              className="absolute inset-0 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
+              className="absolute inset-0 -z-10 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
             />
           )}
-          <span className="relative z-20">{item.name}</span>
+          <span className="relative">{item.name}</span>
         </a>
       ))}
     </motion.div>
@@ -148,25 +140,14 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
 export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
   return (
     <motion.div
-      animate={{
-        backdropFilter: visible ? "blur(10px)" : "none",
-        boxShadow: visible
-          ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(34, 42, 53, 0.04), 0 0 4px rgba(34, 42, 53, 0.08), 0 16px 68px rgba(47, 48, 55, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1) inset"
-          : "none",
-        width: visible ? "90%" : "100%",
-        paddingRight: visible ? "12px" : "0px",
-        paddingLeft: visible ? "12px" : "0px",
-        borderRadius: visible ? "4px" : "2rem",
-        y: visible ? 20 : 0,
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 50,
-      }}
+      data-visible={visible ? "true" : "false"}
+      // CSS-driven for the same reason as NavBody above.
       className={cn(
-        "relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between bg-transparent px-0 py-2 lg:hidden",
-        visible && "bg-white/80 dark:bg-neutral-950/80",
+        "relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between bg-white py-2 lg:hidden dark:bg-neutral-950",
+        "transition-[width,padding,border-radius,box-shadow,transform] duration-300 ease-out",
+        visible
+          ? "w-[90%] translate-y-5 rounded px-3 bg-white/80 shadow-lg backdrop-blur-md dark:bg-neutral-950/80"
+          : "w-full translate-y-0 rounded-[2rem] px-0",
         className,
       )}
     >

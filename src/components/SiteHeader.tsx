@@ -55,14 +55,14 @@ export function SiteHeader({ wishlistCount }: { wishlistCount: number }) {
 
   return (
     <Navbar className="top-0">
-      <NavBody className="justify-between gap-4">
+      <NavBody>
         <Brand />
         <NavItems items={NAV_ITEMS} className="text-xs font-bold tracking-wide" />
         <div className="relative z-20 flex shrink-0 items-center gap-5">
           <GooeyInput
             placeholder="Search for products, brands and more"
-            collapsedWidth={220}
-            expandedWidth={360}
+            collapsedWidth={200}
+            expandedWidth={320}
             classNames={{
               trigger: "bg-canvas text-ink ring-1 ring-border hover:bg-border/40",
               bubbleSurface: "bg-canvas text-ink ring-1 ring-border",

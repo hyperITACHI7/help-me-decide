@@ -102,7 +102,7 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
       </h1>
 
       <div className="mt-4 flex flex-col gap-6 md:flex-row">
-        <div className="shrink-0 md:w-[300px]">
+        <div className="shrink-0">
           <CatalogFilterSidebar
             categoryCounts={[...categoryCounts.entries()]}
             brandCounts={[...brandCounts.entries()]}

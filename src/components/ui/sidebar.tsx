@@ -69,11 +69,11 @@ export const Sidebar = ({
   );
 };
 
-export const SidebarBody = (props: React.ComponentProps<typeof motion.div>) => {
+export const SidebarBody = (props: React.ComponentProps<"div">) => {
   return (
     <>
       <DesktopSidebar {...props} />
-      <MobileSidebar {...(props as React.ComponentProps<"div">)} />
+      <MobileSidebar {...props} />
     </>
   );
 };
@@ -82,25 +82,26 @@ export const DesktopSidebar = ({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof motion.div>) => {
+}: React.ComponentProps<"div">) => {
   const { open, setOpen, animate } = useSidebar();
   return (
-    <>
-      <motion.div
-        className={cn(
-          "h-full px-4 py-4 hidden  md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] shrink-0",
-          className
-        )}
-        animate={{
-          width: animate ? (open ? "300px" : "60px") : "300px",
-        }}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        {...props}
-      >
-        {children}
-      </motion.div>
-    </>
+    <div
+      data-open={open ? "true" : "false"}
+      // Width is animated with a CSS transition rather than motion's
+      // `animate`, which leaves the rail stuck at its start value whenever the
+      // rAF loop is throttled (background/non-compositing tabs).
+      className={cn(
+        "h-full px-4 py-4 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 shrink-0 overflow-hidden",
+        "transition-[width] duration-300 ease-out",
+        !animate || open ? "w-[300px]" : "w-[60px]",
+        className
+      )}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      {...props}
+    >
+      {children}
+    </div>
   );
 };
 
@@ -174,15 +175,14 @@ export const SidebarLink = ({
     >
       {link.icon}
 
-      <motion.span
-        animate={{
-          display: animate ? (open ? "inline-block" : "none") : "inline-block",
-          opacity: animate ? (open ? 1 : 0) : 1,
-        }}
-        className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+      <span
+        className={cn(
+          "text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre !p-0 !m-0",
+          !animate || open ? "inline-block opacity-100" : "hidden opacity-0"
+        )}
       >
         {link.label}
-      </motion.span>
+      </span>
     </a>
   );
 };
