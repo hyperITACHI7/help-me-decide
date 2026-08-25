@@ -31,8 +31,21 @@ export default async function WishlistPage() {
   // wishlist_viewed (phased_architecture.md §5 Phase 5).
   await track("wishlist_viewed", { sessionId: session.id });
 
+  // Showcase leads to the shortlist, which only exists once triage has kept
+  // something; Clean only has work to do once something was passed on.
+  const [keptCount, discardedCount] = await Promise.all([
+    prisma.triageDecision.count({
+      where: { sessionId: session.id, direction: "keep" },
+    }),
+    prisma.triageDecision.count({
+      where: { sessionId: session.id, direction: "discard" },
+    }),
+  ]);
+
   return (
     <WishlistGrid
+      canShowcase={keptCount > 0}
+      discardedCount={discardedCount}
       items={items.map((item) => ({
         id: item.id,
         name: item.name,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { startTriageWithSelection } from "@/app/wishlist/decide/actions";
 import { CatalogBrowser } from "@/components/CatalogBrowser";
+import { WishlistDock } from "@/components/WishlistDock";
 import type { CatalogCardItem } from "@/components/CatalogProductCard";
 
 const MIN_SELECTION = 3;
@@ -12,7 +13,15 @@ export type WishlistItem = CatalogCardItem & {
   openCount: number;
 };
 
-export function WishlistGrid({ items }: { items: WishlistItem[] }) {
+export function WishlistGrid({
+  items,
+  canShowcase,
+  discardedCount,
+}: {
+  items: WishlistItem[];
+  canShowcase: boolean;
+  discardedCount: number;
+}) {
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -46,17 +55,11 @@ export function WishlistGrid({ items }: { items: WishlistItem[] }) {
       footer={
         /* F1: entry point visible on the wishlist without navigation, opt-in
            only (edge_case.md EC5 — never an interstitial that blocks
-           browsing). Selection is how a shopper builds the candidate set. */
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-          {!selecting ? (
-            <button
-              type="button"
-              onClick={() => setSelecting(true)}
-              className="mx-auto block w-full max-w-md rounded-lg bg-brand py-3 text-center text-sm font-bold text-white"
-            >
-              Help me decide
-            </button>
-          ) : (
+           browsing). Selection is how a shopper builds the candidate set, so
+           the dock's AI Pick starts it and the confirm bar replaces the dock
+           until they commit or cancel. */
+        selecting ? (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
             <form
               action={startTriageWithSelection}
               className="mx-auto flex max-w-md items-center gap-2"
@@ -78,11 +81,17 @@ export function WishlistGrid({ items }: { items: WishlistItem[] }) {
               >
                 {selectedIds.size < MIN_SELECTION
                   ? `Select at least ${MIN_SELECTION} (${selectedIds.size} picked)`
-                  : `Help me decide (${selectedIds.size} selected)`}
+                  : `Continue with ${selectedIds.size} selected`}
               </button>
             </form>
-          )}
-        </div>
+          </div>
+        ) : (
+          <WishlistDock
+            onAiPick={() => setSelecting(true)}
+            canShowcase={canShowcase}
+            discardedCount={discardedCount}
+          />
+        )
       }
     />
   );
