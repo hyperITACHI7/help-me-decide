@@ -21,7 +21,7 @@ export async function castVote(
 ): Promise<{ ok: true } | { ok: false; reason: "invalid" | "revoked" }> {
   const link = await prisma.shareLink.findUnique({
     where: { token },
-    include: { shortlist: { include: { tiers: true } } },
+    include: { shortlist: { include: { tiers: true } }, items: true },
   });
 
   if (!link) return { ok: false, reason: "invalid" };
@@ -29,8 +29,12 @@ export async function castVote(
   // not just on page load, so a revoke that lands mid-session still wins.
   if (link.revokedAt) return { ok: false, reason: "revoked" };
 
-  const belongsToShortlist = link.shortlist.tiers.some((t) => t.itemId === itemId);
-  if (!belongsToShortlist) return { ok: false, reason: "invalid" };
+  // The item must belong to whichever set this link actually shares, so a
+  // forged itemId can't attract votes onto something never shared.
+  const belongsToLink =
+    link.items.some((i) => i.itemId === itemId) ||
+    (link.shortlist?.tiers.some((t) => t.itemId === itemId) ?? false);
+  if (!belongsToLink) return { ok: false, reason: "invalid" };
 
   await prisma.vote.upsert({
     where: {

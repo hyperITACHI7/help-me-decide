@@ -35,6 +35,7 @@ model Session {
   items           WishlistItem[]
   triageDecisions TriageDecision[]
   shortlists      Shortlist[]
+  shareLinks      ShareLink[]
   analyticsEvents AnalyticsEvent[]
 }
 
@@ -61,6 +62,7 @@ model WishlistItem {
 
   triageDecisions TriageDecision[]
   shortlistTiers  ShortlistTier[]
+  shareLinkItems  ShareLinkItem[]
   votes           Vote[]
 
   @@index([sessionId])
@@ -111,15 +113,36 @@ model ShortlistTier {
   @@unique([shortlistId, itemId])
 }
 
+// A share link carries EITHER the AI's shortlist (F6) or a hand-picked
+// showcase set the shopper chose from their wishlist. Both are voted on the
+// same way; only the source of the item list differs.
 model ShareLink {
-  id          String    @id @default(cuid())
-  shortlistId String    @unique
-  shortlist   Shortlist @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
-  token       String    @unique
-  createdAt   DateTime  @default(now())
+  id          String     @id @default(cuid())
+  shortlistId String?    @unique
+  shortlist   Shortlist? @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  // Set for showcase links, so the owner can find their own links back.
+  sessionId   String?
+  session     Session?   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  token       String     @unique
+  createdAt   DateTime   @default(now())
   revokedAt   DateTime?
 
+  items ShareLinkItem[]
+
   votes Vote[]
+}
+
+// The item set behind a showcase link. Absent for shortlist-backed links,
+// which resolve their items through Shortlist.tiers instead.
+model ShareLinkItem {
+  id          String       @id @default(cuid())
+  shareLinkId String
+  shareLink   ShareLink    @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        WishlistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  position    Int          @default(0)
+
+  @@unique([shareLinkId, itemId])
 }
 
 // Keyed per (link, voter, item) — resolves edge_case.md §2.1: each of the 3

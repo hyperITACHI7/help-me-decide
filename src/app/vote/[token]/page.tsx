@@ -19,6 +19,7 @@ export default async function VotePage({
       shortlist: {
         include: { tiers: { include: { item: true } } },
       },
+      items: { include: { item: true }, orderBy: { position: "asc" } },
     },
   });
 
@@ -43,12 +44,28 @@ export default async function VotePage({
     );
   }
 
-  const items = link.shortlist.tiers.map((t) => ({
-    id: t.item.id,
-    name: t.item.name,
-    brand: t.item.brand,
-    imageUrl: t.item.imageUrl,
-    price: t.item.price,
+  // A showcase carries its own item set; a shortlist link resolves through
+  // its tiers. Either way the friend swipes the same way.
+  const source =
+    link.items.length > 0
+      ? link.items.map((i) => i.item)
+      : (link.shortlist?.tiers.map((t) => t.item) ?? []);
+
+  if (source.length === 0) {
+    return (
+      <EmptyState
+        title="There's nothing to react to"
+        body="This link doesn't have any items on it any more."
+      />
+    );
+  }
+
+  const items = source.map((item) => ({
+    id: item.id,
+    name: item.name,
+    brand: item.brand,
+    imageUrl: item.imageUrl,
+    price: item.price,
   }));
 
   return <VotePanel token={token} items={items} />;

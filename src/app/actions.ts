@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { createSeededSession, getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { track } from "@/lib/analytics";
@@ -44,45 +43,6 @@ export async function addToWishlist(itemId: string) {
   if (exists > 0) {
     await track("wishlist_add_clicked", { sessionId: session.id, props: { itemId } });
   }
-}
-
-export type CleanWishlistResult = { removed: number; skippedProtected: number };
-
-/**
- * "Clean wishlist" — drops the items this shopper already passed on during
- * triage. Deliberately narrow: deleting a WishlistItem cascades to
- * TriageDecision, ShortlistTier and Vote, so anything currently referenced by
- * a shortlist tier is left alone. Otherwise cleaning could silently tear an
- * item out of a shortlist a friend is already voting on (F6/R6).
- */
-export async function cleanWishlist(): Promise<CleanWishlistResult> {
-  const session = await getSession();
-  if (!session) return { removed: 0, skippedProtected: 0 };
-
-  const discarded = await prisma.wishlistItem.findMany({
-    where: {
-      sessionId: session.id,
-      triageDecisions: { some: { sessionId: session.id, direction: "discard" } },
-    },
-    select: { id: true, shortlistTiers: { select: { id: true } } },
-  });
-
-  const removable = discarded.filter((i) => i.shortlistTiers.length === 0);
-  const protectedCount = discarded.length - removable.length;
-
-  if (removable.length > 0) {
-    await prisma.wishlistItem.deleteMany({
-      where: { sessionId: session.id, id: { in: removable.map((i) => i.id) } },
-    });
-    await track("wishlist_cleaned", {
-      sessionId: session.id,
-      props: { removed: removable.length },
-    });
-  }
-
-  revalidatePath("/wishlist");
-  revalidatePath("/");
-  return { removed: removable.length, skippedProtected: protectedCount };
 }
 
 /**
