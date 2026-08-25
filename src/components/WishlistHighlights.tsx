@@ -63,11 +63,12 @@ export function WishlistHighlights({ data }: { data: WishlistHighlightsData }) {
   const { mostViewed, showcase, aiPick } = data;
 
   return (
-    <BentoGrid className="mx-0 mb-6 max-w-none gap-4 md:auto-rows-[11rem] md:grid-cols-3">
-      {/* Most viewed spans two rows and leads with the image: the whole point
-          is repeated exposure to the item they keep coming back to. */}
+    <BentoGrid className="mx-0 mb-6 max-w-none gap-4 md:auto-rows-[17rem] md:grid-cols-3">
+      {/* One column wide, two rows tall — a portrait frame that matches the
+          product shot, so the image can dominate. The two summary cards take
+          the remaining two columns beside it. */}
       <BentoGridItem
-        className="border-border bg-surface md:col-span-2 md:row-span-2"
+        className="border-border bg-surface md:row-span-2"
         header={
           mostViewed ? (
             <div className="relative min-h-[16rem] w-full flex-1 overflow-hidden rounded-lg bg-canvas md:min-h-0">
@@ -109,12 +110,12 @@ export function WishlistHighlights({ data }: { data: WishlistHighlightsData }) {
 
       {/* Showcase results */}
       <BentoGridItem
-        className="border-border bg-surface"
+        className="border-border bg-surface md:col-span-2"
         header={
           showcase ? (
             showcase.totalVotes > 0 && showcase.top ? (
               <div className="flex min-h-0 flex-1 items-center gap-3">
-                <Thumb item={showcase.top} className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-canvas" />
+                <Thumb item={showcase.top} className="h-full max-h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-canvas" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-ink">
                     {showcase.top.brand}
@@ -159,11 +160,11 @@ export function WishlistHighlights({ data }: { data: WishlistHighlightsData }) {
 
       {/* Latest AI pick */}
       <BentoGridItem
-        className="border-border bg-surface"
+        className="border-border bg-surface md:col-span-2"
         header={
           aiPick?.top ? (
             <div className="flex min-h-0 flex-1 items-center gap-3">
-              <Thumb item={aiPick.top} className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-canvas" />
+              <Thumb item={aiPick.top} className="h-full max-h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-canvas" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-ink">{aiPick.top.brand}</p>
                 <p className="truncate text-xs text-muted">{aiPick.top.name}</p>
