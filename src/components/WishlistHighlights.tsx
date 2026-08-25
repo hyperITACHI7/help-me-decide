@@ -62,16 +62,19 @@ function Thumb({ item, className }: { item: HighlightItem; className?: string })
 export function WishlistHighlights({ data }: { data: WishlistHighlightsData }) {
   const { mostViewed, showcase, aiPick } = data;
 
+  // Four columns, so one column is narrow enough that a 3:4 image fills its
+  // width — the most-viewed card is then the grid's product card at ~1.4x,
+  // not a wider box with a letterboxed photo. Row height is set so two rows
+  // equal that card's natural content height.
   return (
-    <BentoGrid className="mx-0 mb-6 max-w-none gap-4 md:auto-rows-[17rem] md:grid-cols-3">
-      {/* One column wide, two rows tall — a portrait frame that matches the
-          product shot, so the image can dominate. The two summary cards take
-          the remaining two columns beside it. */}
+    <BentoGrid className="mx-0 mb-6 max-w-none gap-4 md:auto-rows-[15.5rem] md:grid-cols-4">
       <BentoGridItem
         className="border-border bg-surface md:row-span-2"
         header={
           mostViewed ? (
-            <div className="relative min-h-[16rem] w-full flex-1 overflow-hidden rounded-lg bg-canvas md:min-h-0">
+            <div className="relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-lg bg-canvas">
+              {/* shrink-0 above matters: the card has a fixed two-row height,
+                  and flex would otherwise squash the box and break the 3:4. */}
               {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
               <img
                 src={mostViewed.imageUrl}
@@ -110,7 +113,7 @@ export function WishlistHighlights({ data }: { data: WishlistHighlightsData }) {
 
       {/* Showcase results */}
       <BentoGridItem
-        className="border-border bg-surface md:col-span-2"
+        className="border-border bg-surface md:col-span-3"
         header={
           showcase ? (
             showcase.totalVotes > 0 && showcase.top ? (
@@ -160,7 +163,7 @@ export function WishlistHighlights({ data }: { data: WishlistHighlightsData }) {
 
       {/* Latest AI pick */}
       <BentoGridItem
-        className="border-border bg-surface md:col-span-2"
+        className="border-border bg-surface md:col-span-3"
         header={
           aiPick?.top ? (
             <div className="flex min-h-0 flex-1 items-center gap-3">
