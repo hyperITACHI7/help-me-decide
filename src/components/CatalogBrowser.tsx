@@ -1,17 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CatalogProductCard, type CatalogCardItem } from "@/components/CatalogProductCard";
 import { CatalogFilterSidebar } from "@/components/CatalogFilterSidebar";
 import { SortDropdown } from "@/components/SortDropdown";
 import { addToWishlist } from "@/app/actions";
 import { discountPercent } from "@/lib/display";
+import { cn } from "@/lib/utils";
 
 type Item = CatalogCardItem & { category: string; openCount: number };
 
 const DISCOUNT_TIERS = [10, 20, 30, 40, 50];
 const PRICE_STEP = 100;
+
+/** Hover-surface travel time — quick, but long enough to read as a move. */
+const TRAVEL_MS = 180;
+const TRAVEL_S = TRAVEL_MS / 1000;
 
 const SORTS = [
   { key: "recommended", label: "Recommended" },
@@ -47,6 +52,24 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
   const [discountTier, setDiscountTier] = useState<number | null>(null);
   const [sort, setSort] = useState<SortKey>("recommended");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  // False while the hover surface is travelling between cards. Driven from the
+  // hover change rather than motion's layout callbacks so it stays correct even
+  // if the layout animation is skipped (reduced motion, throttled rAF).
+  const [settled, setSettled] = useState(true);
+  const travelTimer = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (travelTimer.current !== null) window.clearTimeout(travelTimer.current);
+  }, []);
+
+  function handleCardEnter(idx: number) {
+    if (hoveredIndex !== null && hoveredIndex !== idx) {
+      setSettled(false);
+      if (travelTimer.current !== null) window.clearTimeout(travelTimer.current);
+      travelTimer.current = window.setTimeout(() => setSettled(true), TRAVEL_MS);
+    }
+    setHoveredIndex(idx);
+  }
 
   const categoryCounts = useMemo(() => countBy(items, (i) => i.category), [items]);
   const brandCounts = useMemo(() => countBy(items, (i) => i.brand), [items]);
@@ -152,19 +175,28 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
                 <div
                   key={item.id}
                   className="relative block p-2"
-                  onMouseEnter={() => setHoveredIndex(idx)}
+                  onMouseEnter={() => handleCardEnter(idx)}
                 >
                   {/* The elevated white surface sits *behind* the card, so on
                       hover the description area reads as part of the card
-                      instead of blending into the page. */}
+                      instead of blending into the page. The shadow is dropped
+                      while it travels between cards and eased back in on
+                      arrival — it also keeps the shadow from being smeared by
+                      the layout animation's transform. */}
                   <AnimatePresence>
                     {hoveredIndex === idx && (
                       <motion.span
                         layoutId="productHoverBackground"
-                        className="absolute inset-0 z-10 block h-full w-full rounded-sm bg-surface shadow-[0_4px_16px_rgba(0,0,0,0.16)]"
+                        transition={{ duration: TRAVEL_S, ease: [0.22, 1, 0.36, 1] }}
+                        className={cn(
+                          "absolute inset-0 z-10 block h-full w-full rounded-sm bg-surface",
+                          settled
+                            ? "shadow-[0_4px_16px_rgba(0,0,0,0.16)] transition-shadow duration-300 ease-out"
+                            : "shadow-none transition-none",
+                        )}
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, transition: { duration: 0.15 } }}
-                        exit={{ opacity: 0, transition: { duration: 0.15, delay: 0.2 } }}
+                        animate={{ opacity: 1, transition: { duration: 0.12 } }}
+                        exit={{ opacity: 0, transition: { duration: 0.12 } }}
                       />
                     )}
                   </AnimatePresence>
