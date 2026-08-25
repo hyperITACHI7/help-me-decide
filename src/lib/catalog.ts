@@ -166,30 +166,47 @@ export function catalogFor(variant: "small" | "large"): CatalogItem[] {
 // specific photo isn't shot.
 const VARIANT_SUFFIX = /-v\d+$/;
 
+// Every value here was verified directly against LoremFlickr before being
+// used (see conversation history) against two failure modes the first pass
+// didn't check for:
+//  1. Hyphenated multi-word "keywords" like "field-jacket" or "formal-shirt"
+//     are not real Flickr tags. Flickr tags are single words, so these
+//     silently matched nothing on that half of the query, leaving only
+//     whatever generic modifier word was comma-joined next to it (e.g.
+//     "black", "white", "mens") to drive the actual result — genuinely
+//     unrelated photos (a black cat, for "bomber-jacket,black") are what
+//     that failure mode looks like.
+//  2. Even once a keyword resolves to real matches, a narrow/rare tag can
+//     have a matching pool of only one or two photos, so different `lock`
+//     values collapse onto the same handful of images. Confirmed
+//     empirically: "bomber-jacket,black" repeated by lock 2130 within 5
+//     samples; every keyword below returned 5 distinct photos across 5
+//     sample locks. ("puffer-vest", "canvas-sneakers" and "henley-shirt"
+//     failed that check and were replaced with a broader, verified term.)
 const PRODUCT_KEYWORDS: Record<string, string> = {
-  "urban-thread-olive-field-jacket": "olive,field-jacket",
-  "northgear-quilted-bomber": "bomber-jacket,black",
-  "streetkraft-denim-trucker": "denim-jacket",
-  "cahoot-classic-shirt": "formal-shirt,mens",
-  "flexfit-crew-tee": "graphic-tshirt",
-  "strideone-running-shoes": "running-shoes",
-  "denimforge-slim-trouser": "formal-trousers",
-  "urban-thread-hoodie": "hoodie,fleece",
-  "cahoot-linen-shirt": "linen-shirt",
-  "flexfit-polo": "polo-shirt",
-  "strideone-canvas-sneaker": "canvas-sneakers",
-  "denimforge-cargo-trouser": "cargo-pants",
-  "northgear-puffer-vest": "puffer-vest",
-  "cahoot-check-shirt": "flannel-shirt",
-  "flexfit-henley": "henley-shirt",
-  "strideone-trail-shoes": "trail-shoes,hiking",
-  "denimforge-jogger": "jogger-pants",
-  "streetkraft-varsity-jacket": "varsity-jacket",
-  "cahoot-oxford-shirt": "oxford-shirt,white",
-  "flexfit-oversized-tee": "oversized-tshirt",
-  "strideone-slip-on": "loafers,shoes",
-  "denimforge-formal-trouser": "formal-trousers,navy",
-  "northgear-windbreaker": "windbreaker-jacket",
+  "urban-thread-olive-field-jacket": "jacket",
+  "northgear-quilted-bomber": "bomberjacket",
+  "streetkraft-denim-trucker": "denimjacket",
+  "cahoot-classic-shirt": "shirt",
+  "flexfit-crew-tee": "tshirt",
+  "strideone-running-shoes": "runningshoes",
+  "denimforge-slim-trouser": "trousers",
+  "urban-thread-hoodie": "hoodie",
+  "cahoot-linen-shirt": "shirt",
+  "flexfit-polo": "poloshirt",
+  "strideone-canvas-sneaker": "sneakers",
+  "denimforge-cargo-trouser": "cargopants",
+  "northgear-puffer-vest": "pufferjacket",
+  "cahoot-check-shirt": "flannelshirt",
+  "flexfit-henley": "shirt",
+  "strideone-trail-shoes": "hikingboots",
+  "denimforge-jogger": "joggers",
+  "streetkraft-varsity-jacket": "varsityjacket",
+  "cahoot-oxford-shirt": "oxfordshirt",
+  "flexfit-oversized-tee": "tshirt",
+  "strideone-slip-on": "loafers",
+  "denimforge-formal-trouser": "chinos",
+  "northgear-windbreaker": "windbreaker",
 };
 
 export function imageUrlFor(slug: string): string {

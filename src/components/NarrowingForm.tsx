@@ -5,7 +5,7 @@ import { submitAnswers } from "@/app/wishlist/decide/shortlist/actions";
 import type { NarrowingQuestion, ShortlistOutcome } from "@/lib/shortlist";
 import { TIER_LABELS } from "@/lib/tierDisplay";
 import { ShareControls } from "@/components/ShareControls";
-import { handleImageError } from "@/lib/imageFallback";
+import { ProductImage } from "@/components/ProductImage";
 
 type CandidateDisplay = {
   id: string;
@@ -166,12 +166,10 @@ function ShortlistResult({
           return (
             <div key={tier.tier} className="flex gap-3 rounded-xl bg-surface p-3 shadow-sm">
               <div className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-canvas">
-                {/* eslint-disable-next-line @next/next/no-img-element -- hotlinked photo */}
-                <img
+                <ProductImage
                   src={item.imageUrl}
                   alt={item.name}
                   className="h-full w-full object-cover"
-                  onError={handleImageError}
                 />
               </div>
               <div className="min-w-0 flex-1">

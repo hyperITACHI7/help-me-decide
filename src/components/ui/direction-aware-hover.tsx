@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { handleImageError } from "@/lib/imageFallback";
+import { ProductImage } from "@/components/ProductImage";
 
 export const DirectionAwareHover = ({
   imageUrl,
@@ -88,8 +88,7 @@ export const DirectionAwareHover = ({
               ease: "easeOut",
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- hotlinked photo, next/image can't optimize a runtime-variable external host */}
-            <img
+            <ProductImage
               alt={imageAlt}
               className={cn(
                 "h-full w-full object-cover scale-[1.15]",
@@ -98,7 +97,6 @@ export const DirectionAwareHover = ({
               width="1000"
               height="1000"
               src={imageUrl}
-              onError={handleImageError}
             />
           </motion.div>
           <motion.div
