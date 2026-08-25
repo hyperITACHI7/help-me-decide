@@ -160,11 +160,10 @@ export function catalogFor(variant: "small" | "large"): CatalogItem[] {
 // with handleImageError (src/lib/imageFallback.ts) so an unreachable CDN
 // degrades to a neutral placeholder instead of a broken-image icon.
 //
-// Variant SKUs (the "large" catalog's -v0/-v1/-v2 colourway suffixes) share
-// their base product's photo rather than each getting a unique shot, matching
-// how most real catalogs handle closely related SKUs when a colourway-
-// specific photo isn't shot.
-const VARIANT_SUFFIX = /-v\d+$/;
+// Matches the "large" catalog's -v0/-v1/-v2 colourway suffix, capturing the
+// index so each variant can get its own distinct photo (see PRODUCT_PHOTOS)
+// rather than all three sharing one shot.
+const VARIANT_SUFFIX = /-v(\d+)$/;
 
 // Every value here was verified directly against LoremFlickr before being
 // used (see conversation history) against two failure modes the first pass
@@ -216,38 +215,133 @@ const PRODUCT_KEYWORDS: Record<string, string> = {
 // share page, and confirmed to hotlink correctly from a third-party origin
 // before being added here. Takes priority over PRODUCT_KEYWORDS below, which
 // now only backstops any product this map doesn't cover.
-const PRODUCT_PHOTOS: Record<string, string> = {
-  "urban-thread-olive-field-jacket": "https://i.pinimg.com/736x/d2/79/46/d27946d5554525aa18cabed1bb04cbf7.jpg",
-  "northgear-quilted-bomber": "https://i.pinimg.com/736x/cf/3c/04/cf3c04ab79667ae54b56fcd378ad7c6d.jpg",
-  "streetkraft-denim-trucker": "https://i.pinimg.com/736x/4d/f5/2c/4df52ce873ba656773289c57c139cb4d.jpg",
-  "cahoot-classic-shirt": "https://i.pinimg.com/736x/7e/19/4f/7e194fc1448effdd0a3ee377a3808a44.jpg",
-  "flexfit-crew-tee": "https://i.pinimg.com/736x/4b/57/c5/4b57c5c29d10c4b0b878fc6d0026f1a6.jpg",
-  "strideone-running-shoes": "https://i.pinimg.com/736x/62/10/94/621094187ce06e7465e1a7c37cda5d5b.jpg",
-  "denimforge-slim-trouser": "https://i.pinimg.com/736x/11/2b/cc/112bcc6a7975881ef40873b4d9fb4a44.jpg",
-  "urban-thread-hoodie": "https://i.pinimg.com/736x/2e/04/ed/2e04ed6eac01f77c3f7faaf17fad12a4.jpg",
-  "cahoot-linen-shirt": "https://i.pinimg.com/736x/01/c7/a9/01c7a9e6d6485b2be073a2b8d47ccaca.jpg",
-  "flexfit-polo": "https://i.pinimg.com/736x/25/d1/b8/25d1b8d16537f27331eb43cbdb85985e.jpg",
-  "strideone-canvas-sneaker": "https://i.pinimg.com/736x/95/a1/8c/95a18cb1540386ce3969132b98e98ae3.jpg",
-  "denimforge-cargo-trouser": "https://i.pinimg.com/736x/7f/bc/ba/7fbcbaaa0a94e75e2a4df19550de339c.jpg",
-  "northgear-puffer-vest": "https://i.pinimg.com/736x/a0/98/cb/a098cb51d493ec704baaa4d29ee17078.jpg",
-  "cahoot-check-shirt": "https://i.pinimg.com/736x/d8/53/5c/d8535c9a618b06cc07096516c614c4c1.jpg",
-  "flexfit-henley": "https://i.pinimg.com/736x/22/5b/f5/225bf5adeda8882af84bb35cc741554e.jpg",
-  "strideone-trail-shoes": "https://i.pinimg.com/736x/9c/64/a5/9c64a589878d81262468cbcbe82f1b88.jpg",
-  "denimforge-jogger": "https://i.pinimg.com/736x/31/33/97/313397f516bbe0e62532b15273e0a55e.jpg",
-  "streetkraft-varsity-jacket": "https://i.pinimg.com/736x/dc/ca/95/dcca95dab6cc885cfc229754d720a7f9.jpg",
-  "cahoot-oxford-shirt": "https://i.pinimg.com/736x/a1/91/ac/a191ac220cb3fd6273f578fde1a3bd41.jpg",
-  "flexfit-oversized-tee": "https://i.pinimg.com/736x/82/37/10/8237107d4225ec112b524f85094396f7.jpg",
-  "strideone-slip-on": "https://i.pinimg.com/736x/63/93/20/6393202b8f0e1ec5a33b3594de9b97c4.jpg",
-  "denimforge-formal-trouser": "https://i.pinimg.com/736x/27/dd/c4/27ddc4e81c0035b75ee75d9eb9c86d9e.jpg",
-  "northgear-windbreaker": "https://i.pinimg.com/736x/2d/7e/15/2d7e15c505acd623e399753646bf8e95.jpg",
+//
+// One entry per colourway variant, not one shared per base product: the
+// "large" catalog shows a product's three variants (-v0/-v1/-v2) as three
+// separate cards, and reusing a single photo across all three read as
+// repetitive. Small-wishlist items (no variant suffix, only ever one card)
+// just get a one-element array.
+const PRODUCT_PHOTOS: Record<string, string[]> = {
+  "urban-thread-olive-field-jacket": [
+    "https://i.pinimg.com/736x/d2/79/46/d27946d5554525aa18cabed1bb04cbf7.jpg",
+  ],
+  "northgear-quilted-bomber": [
+    "https://i.pinimg.com/736x/cf/3c/04/cf3c04ab79667ae54b56fcd378ad7c6d.jpg",
+  ],
+  "streetkraft-denim-trucker": [
+    "https://i.pinimg.com/736x/4d/f5/2c/4df52ce873ba656773289c57c139cb4d.jpg",
+  ],
+  "cahoot-classic-shirt": [
+    "https://i.pinimg.com/736x/7e/19/4f/7e194fc1448effdd0a3ee377a3808a44.jpg",
+    "https://i.pinimg.com/736x/a0/9e/9c/a09e9c86f3ce51c34a32b2fbac0a0bd1.jpg",
+    "https://i.pinimg.com/736x/ad/e9/f9/ade9f92a1faa26638b86a2f230aa2db4.jpg",
+  ],
+  "flexfit-crew-tee": [
+    "https://i.pinimg.com/736x/4b/57/c5/4b57c5c29d10c4b0b878fc6d0026f1a6.jpg",
+    "https://i.pinimg.com/736x/5a/76/a1/5a76a1d572fb4a202f9e074265a54df9.jpg",
+    "https://i.pinimg.com/736x/c5/93/a5/c593a579c33ea8889b2ddb5b9a59aa2f.jpg",
+  ],
+  "strideone-running-shoes": [
+    "https://i.pinimg.com/736x/62/10/94/621094187ce06e7465e1a7c37cda5d5b.jpg",
+    "https://i.pinimg.com/736x/8e/7f/00/8e7f00f73e29c2d96d16279859141754.jpg",
+    "https://i.pinimg.com/736x/55/c4/01/55c401b3860192fbe41504530dd3cc5a.jpg",
+  ],
+  "denimforge-slim-trouser": [
+    "https://i.pinimg.com/736x/11/2b/cc/112bcc6a7975881ef40873b4d9fb4a44.jpg",
+    "https://i.pinimg.com/736x/15/86/0e/15860e2d00d64a5fe24e4fbf29f57b4c.jpg",
+    "https://i.pinimg.com/736x/da/dc/e5/dadce5946b733d5e9d00def3ec34f041.jpg",
+  ],
+  "urban-thread-hoodie": [
+    "https://i.pinimg.com/736x/2e/04/ed/2e04ed6eac01f77c3f7faaf17fad12a4.jpg",
+    "https://i.pinimg.com/736x/4e/06/89/4e068965c1ddd62562cee06af87a88ec.jpg",
+    "https://i.pinimg.com/736x/d7/b4/a9/d7b4a9b448c509f2ffd9256e2b619f30.jpg",
+  ],
+  "cahoot-linen-shirt": [
+    "https://i.pinimg.com/736x/01/c7/a9/01c7a9e6d6485b2be073a2b8d47ccaca.jpg",
+    "https://i.pinimg.com/736x/a3/7f/e5/a37fe500edcdbc8dfab9d47e9c9325ae.jpg",
+    "https://i.pinimg.com/736x/c6/f9/4f/c6f94f3c64c62702e7ef5a3c63ceb2be.jpg",
+  ],
+  "flexfit-polo": [
+    "https://i.pinimg.com/736x/25/d1/b8/25d1b8d16537f27331eb43cbdb85985e.jpg",
+    "https://i.pinimg.com/736x/96/7e/ed/967eedd51fb5d70ec23ae75a2667ea9d.jpg",
+    "https://i.pinimg.com/736x/97/6a/ad/976aadd493ec3fb1e2c38c97fef57a19.jpg",
+  ],
+  "strideone-canvas-sneaker": [
+    "https://i.pinimg.com/736x/95/a1/8c/95a18cb1540386ce3969132b98e98ae3.jpg",
+    "https://i.pinimg.com/736x/9f/78/e4/9f78e4369d001ce65c644ba315e85667.jpg",
+    "https://i.pinimg.com/736x/f2/a5/81/f2a581d98ad0c0d8495fa39aaa3747ac.jpg",
+  ],
+  "denimforge-cargo-trouser": [
+    "https://i.pinimg.com/736x/7f/bc/ba/7fbcbaaa0a94e75e2a4df19550de339c.jpg",
+    "https://i.pinimg.com/736x/a4/bb/92/a4bb923d4899e63f48003a198d4b7ce8.jpg",
+    "https://i.pinimg.com/736x/84/94/a4/8494a416f5c6df1ea00562f06f790c65.jpg",
+  ],
+  "northgear-puffer-vest": [
+    "https://i.pinimg.com/736x/a0/98/cb/a098cb51d493ec704baaa4d29ee17078.jpg",
+    "https://i.pinimg.com/736x/6a/a9/22/6aa922e27619fafd7d03b93601aa12f4.jpg",
+    "https://i.pinimg.com/736x/f2/02/23/f20223e27b5c61e790964e76da07695d.jpg",
+  ],
+  "cahoot-check-shirt": [
+    "https://i.pinimg.com/736x/d8/53/5c/d8535c9a618b06cc07096516c614c4c1.jpg",
+    "https://i.pinimg.com/736x/a1/17/b9/a117b9eb34e43ed7a1fad8ec86ffbde8.jpg",
+    "https://i.pinimg.com/736x/e4/81/62/e4816295522a4dc032b97d105c4d761b.jpg",
+  ],
+  "flexfit-henley": [
+    "https://i.pinimg.com/736x/22/5b/f5/225bf5adeda8882af84bb35cc741554e.jpg",
+    "https://i.pinimg.com/736x/8d/ac/0c/8dac0cb36c401979ec79febe47b78cac.jpg",
+    "https://i.pinimg.com/736x/51/61/cc/5161cc26a5dc457a161d606cae0e4e20.jpg",
+  ],
+  "strideone-trail-shoes": [
+    "https://i.pinimg.com/736x/9c/64/a5/9c64a589878d81262468cbcbe82f1b88.jpg",
+    "https://i.pinimg.com/736x/fe/46/6f/fe466f25a43ef3918fc17869c20ab8c7.jpg",
+    "https://i.pinimg.com/736x/c3/6a/e5/c36ae511822a7a27afabf00f6ff779a2.jpg",
+  ],
+  "denimforge-jogger": [
+    "https://i.pinimg.com/736x/31/33/97/313397f516bbe0e62532b15273e0a55e.jpg",
+    "https://i.pinimg.com/736x/b9/c8/d7/b9c8d70c73d8154edfb6b9f2c05b79ec.jpg",
+    "https://i.pinimg.com/736x/e3/39/80/e33980d2d4712359dc2d93a20b670a2f.jpg",
+  ],
+  "streetkraft-varsity-jacket": [
+    "https://i.pinimg.com/736x/dc/ca/95/dcca95dab6cc885cfc229754d720a7f9.jpg",
+    "https://i.pinimg.com/736x/8b/98/83/8b9883b764ed10289a228500a23355fb.jpg",
+    "https://i.pinimg.com/736x/c3/b9/7c/c3b97ceb493d955f0b722b9299402b3e.jpg",
+  ],
+  "cahoot-oxford-shirt": [
+    "https://i.pinimg.com/736x/a1/91/ac/a191ac220cb3fd6273f578fde1a3bd41.jpg",
+    "https://i.pinimg.com/736x/a8/81/22/a88122811d4a290272cc1baad41735e3.jpg",
+    "https://i.pinimg.com/736x/a0/00/ba/a000ba07cfb117bca41906783c85d9f6.jpg",
+  ],
+  "flexfit-oversized-tee": [
+    "https://i.pinimg.com/736x/82/37/10/8237107d4225ec112b524f85094396f7.jpg",
+    "https://i.pinimg.com/736x/39/37/b7/3937b7a8cca92b69cc81e46ac1e6af5b.jpg",
+    "https://i.pinimg.com/736x/64/f8/63/64f86378dd580f60b45933ba0df3226b.jpg",
+  ],
+  "strideone-slip-on": [
+    "https://i.pinimg.com/736x/63/93/20/6393202b8f0e1ec5a33b3594de9b97c4.jpg",
+    "https://i.pinimg.com/736x/a2/55/95/a25595ba155c60fe71ce9ee2e71693f5.jpg",
+    "https://i.pinimg.com/736x/4c/ec/a2/4ceca26f1fc5addf55292ae172e1ab50.jpg",
+  ],
+  "denimforge-formal-trouser": [
+    "https://i.pinimg.com/736x/27/dd/c4/27ddc4e81c0035b75ee75d9eb9c86d9e.jpg",
+    "https://i.pinimg.com/736x/43/b3/e8/43b3e8abb51e16d87531ff3018f43997.jpg",
+    "https://i.pinimg.com/736x/15/9e/61/159e61c2b420ec73625d18f4b8dbb48e.jpg",
+  ],
+  "northgear-windbreaker": [
+    "https://i.pinimg.com/736x/2d/7e/15/2d7e15c505acd623e399753646bf8e95.jpg",
+    "https://i.pinimg.com/736x/bd/f6/de/bdf6de70886253a329d3b990093c0e08.jpg",
+    "https://i.pinimg.com/736x/c2/8b/bc/c28bbc13140f1575c6e79d7f2fd91c6f.jpg",
+  ],
 };
 
 export function imageUrlFor(slug: string): string {
+  const variantMatch = slug.match(VARIANT_SUFFIX);
   const baseSlug = slug.replace(VARIANT_SUFFIX, "");
-  const manual = PRODUCT_PHOTOS[baseSlug];
-  if (manual) return manual;
+  const variantIndex = variantMatch ? Number(variantMatch[1]) : 0;
+
+  const photos = PRODUCT_PHOTOS[baseSlug];
+  if (photos) return photos[variantIndex % photos.length];
 
   const keyword = PRODUCT_KEYWORDS[baseSlug] ?? "clothing";
-  const lock = hash(baseSlug) % 10000;
+  const lock = hash(slug) % 10000;
   return `https://loremflickr.com/500/650/${keyword}?lock=${lock}`;
 }
