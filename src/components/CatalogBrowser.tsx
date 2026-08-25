@@ -1,20 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { CatalogProductCard, type CatalogCardItem } from "@/components/CatalogProductCard";
-import { CatalogFilterSidebar, type PriceBand } from "@/components/CatalogFilterSidebar";
+import { CatalogFilterSidebar } from "@/components/CatalogFilterSidebar";
+import { addToWishlist } from "@/app/actions";
 import { discountPercent } from "@/lib/display";
 
 type Item = CatalogCardItem & { category: string };
 
-const PRICE_BANDS: { key: PriceBand; label: string; test: (p: number) => boolean }[] = [
-  { key: "under1000", label: "Under Rs. 1,000", test: (p) => p < 1000 },
-  { key: "1000-2000", label: "Rs. 1,000 - Rs. 2,000", test: (p) => p >= 1000 && p < 2000 },
-  { key: "2000-3000", label: "Rs. 2,000 - Rs. 3,000", test: (p) => p >= 2000 && p < 3000 },
-  { key: "3000plus", label: "Rs. 3,000 and above", test: (p) => p >= 3000 },
-];
-
 const DISCOUNT_TIERS = [10, 20, 30, 40, 50];
+const PRICE_STEP = 100;
 
 const SORTS = [
   { key: "recommended", label: "Recommended" },
@@ -34,23 +30,34 @@ function countBy<T extends string>(items: Item[], pick: (i: Item) => T) {
 }
 
 export function CatalogBrowser({ items }: { items: Item[] }) {
+  // Rounded out to the step so the slider ends on clean rupee values.
+  const priceBounds = useMemo<[number, number]>(() => {
+    if (items.length === 0) return [0, 10000];
+    const prices = items.map((i) => i.price);
+    const hi = Math.ceil(Math.max(...prices) / PRICE_STEP) * PRICE_STEP;
+    return [0, Math.max(hi, PRICE_STEP)];
+  }, [items]);
+
   const [categories, setCategories] = useState<Set<string>>(new Set());
   const [brands, setBrands] = useState<Set<string>>(new Set());
-  const [priceBand, setPriceBand] = useState<PriceBand | null>(null);
+  const [priceRange, setPriceRange] = useState<[number, number]>(priceBounds);
   const [discountTier, setDiscountTier] = useState<number | null>(null);
   const [sort, setSort] = useState<SortKey>("recommended");
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const categoryCounts = useMemo(() => countBy(items, (i) => i.category), [items]);
   const brandCounts = useMemo(() => countBy(items, (i) => i.brand), [items]);
+
+  const priceNarrowed =
+    priceRange[0] > priceBounds[0] || priceRange[1] < priceBounds[1];
 
   const filtered = useMemo(() => {
     let result = items.filter((item) => {
       if (categories.size > 0 && !categories.has(item.category)) return false;
       if (brands.size > 0 && !brands.has(item.brand)) return false;
-      if (priceBand) {
-        const band = PRICE_BANDS.find((b) => b.key === priceBand);
-        if (band && !band.test(item.price)) return false;
-      }
+      if (item.price < priceRange[0]) return false;
+      // The top of the range reads as "and above", so it never excludes.
+      if (priceRange[1] < priceBounds[1] && item.price > priceRange[1]) return false;
       if (discountTier !== null) {
         const pct = discountPercent(item.price, item.originalPrice) ?? 0;
         if (pct < discountTier) return false;
@@ -69,10 +76,10 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
       );
     }
     return result;
-  }, [items, categories, brands, priceBand, discountTier, sort]);
+  }, [items, categories, brands, priceRange, priceBounds, discountTier, sort]);
 
   const anyFilterActive =
-    categories.size > 0 || brands.size > 0 || priceBand !== null || discountTier !== null;
+    categories.size > 0 || brands.size > 0 || priceNarrowed || discountTier !== null;
 
   function toggleSet(
     set: Set<string>,
@@ -88,7 +95,7 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
   function clearAll() {
     setCategories(new Set());
     setBrands(new Set());
-    setPriceBand(null);
+    setPriceRange(priceBounds);
     setDiscountTier(null);
   }
 
@@ -106,22 +113,22 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
           <CatalogFilterSidebar
             categoryCounts={[...categoryCounts.entries()]}
             brandCounts={[...brandCounts.entries()]}
-            priceBands={PRICE_BANDS}
+            priceBounds={priceBounds}
+            priceRange={priceRange}
             discountTiers={DISCOUNT_TIERS}
             categories={categories}
             brands={brands}
-            priceBand={priceBand}
             discountTier={discountTier}
             anyFilterActive={anyFilterActive}
             onToggleCategory={(value) => toggleSet(categories, setCategories, value)}
             onToggleBrand={(value) => toggleSet(brands, setBrands, value)}
-            onSetPriceBand={setPriceBand}
+            onSetPriceRange={setPriceRange}
             onSetDiscountTier={setDiscountTier}
             onClearAll={clearAll}
           />
         </div>
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 border-b border-border pb-3">
             <span className="text-xs font-semibold text-muted">Sort by:</span>
             <div className="flex flex-wrap gap-3">
@@ -145,9 +152,29 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
               No items match these filters.
             </p>
           ) : (
-            <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
-              {filtered.map((item) => (
-                <CatalogProductCard key={item.id} item={item} />
+            <div
+              className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              {filtered.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="relative block p-1"
+                  onMouseEnter={() => setHoveredIndex(idx)}
+                >
+                  <AnimatePresence>
+                    {hoveredIndex === idx && (
+                      <motion.span
+                        layoutId="productHoverBackground"
+                        className="absolute inset-0 block h-full w-full rounded-lg bg-canvas shadow-md"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1, transition: { duration: 0.15 } }}
+                        exit={{ opacity: 0, transition: { duration: 0.15, delay: 0.2 } }}
+                      />
+                    )}
+                  </AnimatePresence>
+                  <CatalogProductCard item={item} onAddToWishlist={addToWishlist} />
+                </div>
               ))}
             </div>
           )}

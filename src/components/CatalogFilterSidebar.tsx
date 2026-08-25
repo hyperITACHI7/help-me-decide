@@ -9,23 +9,22 @@ import {
   IconTag,
 } from "@tabler/icons-react";
 import { Sidebar, SidebarBody, useSidebar } from "@/components/ui/sidebar";
+import { PriceRangeSlider } from "@/components/PriceRangeSlider";
 import { cn } from "@/lib/utils";
-
-export type PriceBand = "under1000" | "1000-2000" | "2000-3000" | "3000plus";
 
 type FilterPanelProps = {
   categoryCounts: [string, number][];
   brandCounts: [string, number][];
-  priceBands: { key: PriceBand; label: string }[];
+  priceBounds: [number, number];
+  priceRange: [number, number];
   discountTiers: number[];
   categories: Set<string>;
   brands: Set<string>;
-  priceBand: PriceBand | null;
   discountTier: number | null;
   anyFilterActive: boolean;
   onToggleCategory: (value: string) => void;
   onToggleBrand: (value: string) => void;
-  onSetPriceBand: (value: PriceBand | null) => void;
+  onSetPriceRange: (value: [number, number]) => void;
   onSetDiscountTier: (value: number | null) => void;
   onClearAll: () => void;
 };
@@ -50,25 +49,27 @@ export function CatalogFilterSidebar(props: FilterPanelProps) {
 function FilterPanel({
   categoryCounts,
   brandCounts,
-  priceBands,
+  priceBounds,
+  priceRange,
   discountTiers,
   categories,
   brands,
-  priceBand,
   discountTier,
   anyFilterActive,
   onToggleCategory,
   onToggleBrand,
-  onSetPriceBand,
+  onSetPriceRange,
   onSetDiscountTier,
   onClearAll,
 }: FilterPanelProps) {
   const { open } = useSidebar();
 
+  const priceNarrowed =
+    priceRange[0] > priceBounds[0] || priceRange[1] < priceBounds[1];
   const activeCount =
     categories.size +
     brands.size +
-    (priceBand ? 1 : 0) +
+    (priceNarrowed ? 1 : 0) +
     (discountTier !== null ? 1 : 0);
 
   return (
@@ -132,14 +133,12 @@ function FilterPanel({
         title="Price"
         icon={<IconTag className="h-5 w-5 shrink-0 text-muted" />}
       >
-        {priceBands.map((band) => (
-          <FilterCheckbox
-            key={band.key}
-            label={band.label}
-            checked={priceBand === band.key}
-            onChange={() => onSetPriceBand(priceBand === band.key ? null : band.key)}
-          />
-        ))}
+        <PriceRangeSlider
+          min={priceBounds[0]}
+          max={priceBounds[1]}
+          value={priceRange}
+          onChange={onSetPriceRange}
+        />
       </FilterSection>
 
       <FilterSection

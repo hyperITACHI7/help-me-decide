@@ -23,6 +23,29 @@ export async function startDemo(formData: FormData) {
 }
 
 /**
+ * Myntra's listing cards expose an "Add to Wishlist" control on hover, so the
+ * catalog card does too. In this prototype the home feed is seeded *from* the
+ * session's wishlist, so every visible card is already wishlisted and this is
+ * an idempotent ensure rather than an insert — it records the intent and
+ * leaves the row untouched. Scoped by sessionId for the same reason as
+ * openItem: Server Actions are reachable by direct POST.
+ */
+export async function addToWishlist(itemId: string) {
+  if (typeof itemId !== "string" || itemId.length === 0) return;
+
+  const session = await getSession();
+  if (!session) return;
+
+  const exists = await prisma.wishlistItem.count({
+    where: { id: itemId, sessionId: session.id },
+  });
+
+  if (exists > 0) {
+    await track("wishlist_add_clicked", { sessionId: session.id, props: { itemId } });
+  }
+}
+
+/**
  * F2's revealed-preference signal (problem_statement.md §1 step 2) — a real
  * in-app action, not a dead counter (edge_case.md EC4). Scoped with
  * `updateMany` + a sessionId filter so a stray/forged itemId from a

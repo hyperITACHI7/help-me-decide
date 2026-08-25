@@ -1,3 +1,7 @@
+"use client";
+
+import { IconHeart } from "@tabler/icons-react";
+import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
 import { reviewCountFor, formatReviewCount, discountPercent } from "@/lib/display";
 
 export type CatalogCardItem = {
@@ -11,35 +15,56 @@ export type CatalogCardItem = {
 };
 
 /**
- * Matches Myntra's real listing-page card layout (myntra.com/shirts) —
- * rating + review count as text above the brand, not a badge on the image,
- * which is the one real structural difference from ProductCard's app-style
- * card used on /wishlist.
+ * Mirrors Myntra's real listing-page card: portrait image with the rating +
+ * review count overlaid bottom-left, then brand / name / price-strike-discount
+ * stacked underneath.
  */
-export function CatalogProductCard({ item }: { item: CatalogCardItem }) {
+export function CatalogProductCard({
+  item,
+  onAddToWishlist,
+}: {
+  item: CatalogCardItem;
+  onAddToWishlist?: (itemId: string) => void;
+}) {
   const pct = discountPercent(item.price, item.originalPrice);
   const reviews = reviewCountFor(item.id);
 
   return (
-    <div className="group">
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-sm bg-canvas">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local SVG data URI */}
-        <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-      </div>
-      <div className="pt-2">
+    <div className="group/product relative z-20 h-full bg-surface">
+      <div className="relative aspect-[3/4] w-full overflow-hidden">
+        <DirectionAwareHover
+          imageUrl={item.imageUrl}
+          imageAlt={item.name}
+          className="h-full w-full rounded-none"
+          imageClassName="object-cover"
+        />
+
         {item.rating > 0 && (
-          <p className="flex items-center gap-1 text-xs text-muted">
-            <span className="inline-flex items-center gap-0.5 rounded-sm bg-rating px-1 py-0.5 text-[11px] font-semibold text-white">
-              {item.rating.toFixed(1)}
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5">
-                <path d="M10 1.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z" />
-              </svg>
-            </span>
-            <span>|</span>
-            <span>{formatReviewCount(reviews)}</span>
-          </p>
+          <span className="pointer-events-none absolute bottom-2 left-2 z-30 flex items-center gap-1 rounded-sm bg-surface/95 px-1.5 py-0.5 text-[11px] font-semibold text-ink shadow-sm">
+            {item.rating.toFixed(1)}
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5 text-rating">
+              <path d="M10 1.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z" />
+            </svg>
+            <span className="font-normal text-muted">| {formatReviewCount(reviews)}</span>
+          </span>
         )}
-        <p className="mt-1 truncate text-sm font-bold text-ink">{item.brand}</p>
+
+        {/* Myntra reveals this control on hover. Driven by CSS group-hover so
+            it stays reliable regardless of the image's motion variants. */}
+        <div className="absolute inset-x-0 bottom-0 z-30 translate-y-2 p-2 opacity-0 transition-all duration-200 group-hover/product:translate-y-0 group-hover/product:opacity-100">
+          <button
+            type="button"
+            onClick={() => onAddToWishlist?.(item.id)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-border bg-surface/95 py-2 text-xs font-bold uppercase tracking-wide text-ink shadow-sm transition hover:border-brand hover:text-brand"
+          >
+            <IconHeart className="h-4 w-4" />
+            Add to Wishlist
+          </button>
+        </div>
+      </div>
+
+      <div className="px-2 pb-3 pt-2">
+        <p className="truncate text-sm font-bold text-ink">{item.brand}</p>
         <p className="truncate text-xs text-muted">{item.name}</p>
         <div className="mt-1 flex flex-wrap items-baseline gap-1.5">
           <span className="text-sm font-bold text-ink">Rs. {item.price}</span>

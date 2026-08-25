@@ -174,8 +174,17 @@ export function GooeyInput({
     if (!searchText) setExpanded(false);
   }, [searchText, setExpanded]);
 
-  const surfaceClass =
-    "bg-foreground text-background shadow-sm ring-1 ring-border/60";
+  const surfaceClass = "bg-foreground shadow-sm ring-1 ring-border/60";
+  // The gooey filter gaussian-blurs whatever it is applied to, so it must only
+  // ever wrap the solid background shapes. Text and icons live in a separate,
+  // unfiltered layer on top — otherwise the placeholder and magnifier smear.
+  const shapeReset = "shadow-none ring-0";
+
+  const animationProps = {
+    initial: "collapsed",
+    animate: isExpanded ? "expanded" : "collapsed",
+    transition,
+  } as const;
 
   return (
     <div
@@ -192,14 +201,43 @@ export function GooeyInput({
           "relative flex h-10 items-center justify-center",
           classNames?.filterWrap,
         )}
-        style={{ filter: `url(#${filterId})` }}
       >
+        {/* Layer 1 — blurred/merging shapes only, never text. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ filter: `url(#${filterId})` }}
+        >
+          <motion.div
+            className={cn(
+              "h-10 rounded-full",
+              surfaceClass,
+              classNames?.trigger,
+              shapeReset,
+            )}
+            variants={buttonVariants}
+            {...animationProps}
+          />
+          <motion.div
+            className={cn(
+              "absolute top-1/2 left-0 size-10 -translate-y-1/2 rounded-full",
+              surfaceClass,
+              classNames?.bubbleSurface,
+              shapeReset,
+            )}
+            variants={iconBubbleVariants}
+            {...animationProps}
+          />
+        </div>
+
+        {/* Layer 2 — crisp, interactive content. */}
         <motion.div
-          className={cn("flex h-10 items-center justify-center", classNames?.buttonRow)}
+          className={cn(
+            "relative flex h-10 items-center justify-center",
+            classNames?.buttonRow,
+          )}
           variants={buttonVariants}
-          initial="collapsed"
-          animate={isExpanded ? "expanded" : "collapsed"}
-          transition={transition}
+          {...animationProps}
         >
           <button
             type="button"
@@ -207,13 +245,12 @@ export function GooeyInput({
             onClick={handleExpand}
             className={cn(
               "flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-full px-4 text-sm font-medium outline-none transition-[color,box-shadow] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
-              surfaceClass,
+              "text-background",
               classNames?.trigger,
+              "bg-transparent",
             )}
           >
-            {!isExpanded ? (
-              <SearchIcon layoutId={iconLayoutId} />
-            ) : null}
+            {!isExpanded ? <SearchIcon layoutId={iconLayoutId} /> : null}
             <motion.input
               layoutId={inputLayoutId}
               ref={inputRef}
@@ -236,25 +273,16 @@ export function GooeyInput({
           </button>
         </motion.div>
 
+        {/* Layer 2b — the detached bubble's icon, also unfiltered. */}
         <motion.div
           className={cn(
-            "absolute top-1/2 left-0 flex size-10 -translate-y-1/2 items-center justify-center",
+            "pointer-events-none absolute top-1/2 left-0 flex size-10 -translate-y-1/2 items-center justify-center",
             classNames?.bubble,
           )}
           variants={iconBubbleVariants}
-          initial="collapsed"
-          animate={isExpanded ? "expanded" : "collapsed"}
-          transition={transition}
+          {...animationProps}
         >
-          <div
-            className={cn(
-              "flex size-10 items-center justify-center rounded-full",
-              surfaceClass,
-              classNames?.bubbleSurface,
-            )}
-          >
-            <SearchIcon layoutId={iconLayoutId} />
-          </div>
+          <SearchIcon layoutId={iconLayoutId} />
         </motion.div>
       </div>
     </div>
