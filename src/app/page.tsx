@@ -27,6 +27,7 @@ export default async function LandingPage() {
           originalPrice: item.originalPrice,
           rating: item.rating,
           category: item.category,
+          openCount: item.seededOpenCount + item.liveOpenCount,
         }))}
       />
     );

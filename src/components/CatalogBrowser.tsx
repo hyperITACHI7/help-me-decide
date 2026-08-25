@@ -4,19 +4,22 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CatalogProductCard, type CatalogCardItem } from "@/components/CatalogProductCard";
 import { CatalogFilterSidebar } from "@/components/CatalogFilterSidebar";
+import { SortDropdown } from "@/components/SortDropdown";
 import { addToWishlist } from "@/app/actions";
 import { discountPercent } from "@/lib/display";
 
-type Item = CatalogCardItem & { category: string };
+type Item = CatalogCardItem & { category: string; openCount: number };
 
 const DISCOUNT_TIERS = [10, 20, 30, 40, 50];
 const PRICE_STEP = 100;
 
 const SORTS = [
   { key: "recommended", label: "Recommended" },
-  { key: "price-asc", label: "Price: Low to High" },
+  { key: "popularity", label: "Popularity" },
+  { key: "discount-desc", label: "Better Discount" },
   { key: "price-desc", label: "Price: High to Low" },
-  { key: "discount-desc", label: "Discount" },
+  { key: "price-asc", label: "Price: Low to High" },
+  { key: "rating-desc", label: "Customer Rating" },
 ] as const;
 type SortKey = (typeof SORTS)[number]["key"];
 
@@ -68,6 +71,9 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
     result = [...result];
     if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
+    else if (sort === "rating-desc") result.sort((a, b) => b.rating - a.rating);
+    // F2's revealed-preference signal doubles as the popularity ordering.
+    else if (sort === "popularity") result.sort((a, b) => b.openCount - a.openCount);
     else if (sort === "discount-desc") {
       result.sort(
         (a, b) =>
@@ -129,22 +135,8 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 border-b border-border pb-3">
-            <span className="text-xs font-semibold text-muted">Sort by:</span>
-            <div className="flex flex-wrap gap-3">
-              {SORTS.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => setSort(s.key)}
-                  className={`text-xs font-semibold ${
-                    sort === s.key ? "text-brand" : "text-ink"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center justify-end border-b border-border pb-3">
+            <SortDropdown options={SORTS} value={sort} onChange={setSort} />
           </div>
 
           {filtered.length === 0 ? (
