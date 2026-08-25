@@ -30,8 +30,8 @@ export function CatalogProductCard({
   const reviews = reviewCountFor(item.id);
 
   return (
-    <div className="group/product relative z-20 h-full bg-surface">
-      <div className="relative aspect-[3/4] w-full overflow-hidden">
+    <div className="group/product relative z-20 h-full">
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-t-sm">
         <DirectionAwareHover
           imageUrl={item.imageUrl}
           imageAlt={item.name}
@@ -39,8 +39,10 @@ export function CatalogProductCard({
           imageClassName="object-cover"
         />
 
+        {/* Overlaid on the image, bottom-left. Hidden on hover because the
+            wishlist bar takes over that strip — same swap Myntra does. */}
         {item.rating > 0 && (
-          <span className="pointer-events-none absolute bottom-2 left-2 z-30 flex items-center gap-1 rounded-sm bg-surface/95 px-1.5 py-0.5 text-[11px] font-semibold text-ink shadow-sm">
+          <span className="pointer-events-none absolute bottom-2 left-2 z-40 flex items-center gap-1 rounded-sm bg-surface px-1.5 py-0.5 text-[11px] font-semibold text-ink shadow-sm transition-opacity duration-200 group-hover/product:opacity-0">
             {item.rating.toFixed(1)}
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5 text-rating">
               <path d="M10 1.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z" />
@@ -49,13 +51,13 @@ export function CatalogProductCard({
           </span>
         )}
 
-        {/* Myntra reveals this control on hover. Driven by CSS group-hover so
-            it stays reliable regardless of the image's motion variants. */}
-        <div className="absolute inset-x-0 bottom-0 z-30 translate-y-2 p-2 opacity-0 transition-all duration-200 group-hover/product:translate-y-0 group-hover/product:opacity-100">
+        {/* Pops up over the image, not below it. CSS-driven so it stays
+            reliable regardless of the image's motion variants. */}
+        <div className="absolute inset-x-0 bottom-0 z-30 translate-y-full p-2 opacity-0 transition-all duration-200 group-hover/product:translate-y-0 group-hover/product:opacity-100">
           <button
             type="button"
             onClick={() => onAddToWishlist?.(item.id)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-border bg-surface/95 py-2 text-xs font-bold uppercase tracking-wide text-ink shadow-sm transition hover:border-brand hover:text-brand"
+            className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-border bg-surface py-2 text-xs font-bold uppercase tracking-wide text-ink shadow-sm transition hover:border-brand hover:text-brand"
           >
             <IconHeart className="h-4 w-4" />
             Add to Wishlist

@@ -153,20 +153,23 @@ export function CatalogBrowser({ items }: { items: Item[] }) {
             </p>
           ) : (
             <div
-              className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+              className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 pb-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
               onMouseLeave={() => setHoveredIndex(null)}
             >
               {filtered.map((item, idx) => (
                 <div
                   key={item.id}
-                  className="relative block p-1"
+                  className="relative block p-2"
                   onMouseEnter={() => setHoveredIndex(idx)}
                 >
+                  {/* The elevated white surface sits *behind* the card, so on
+                      hover the description area reads as part of the card
+                      instead of blending into the page. */}
                   <AnimatePresence>
                     {hoveredIndex === idx && (
                       <motion.span
                         layoutId="productHoverBackground"
-                        className="absolute inset-0 block h-full w-full rounded-lg bg-canvas shadow-md"
+                        className="absolute inset-0 z-10 block h-full w-full rounded-sm bg-surface shadow-[0_4px_16px_rgba(0,0,0,0.16)]"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1, transition: { duration: 0.15 } }}
                         exit={{ opacity: 0, transition: { duration: 0.15, delay: 0.2 } }}
