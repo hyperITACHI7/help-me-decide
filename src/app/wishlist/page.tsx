@@ -31,8 +31,88 @@ export default async function WishlistPage() {
   // wishlist_viewed (phased_architecture.md §5 Phase 5).
   await track("wishlist_viewed", { sessionId: session.id });
 
+  const [latestShowcase, latestShortlist] = await Promise.all([
+    prisma.shareLink.findFirst({
+      where: { sessionId: session.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        items: { include: { item: true }, orderBy: { position: "asc" } },
+        votes: true,
+      },
+    }),
+    prisma.shortlist.findFirst({
+      where: { sessionId: session.id },
+      orderBy: { createdAt: "desc" },
+      include: { tiers: { include: { item: true } } },
+    }),
+  ]);
+
+  const toHighlight = (item: {
+    id: string;
+    name: string;
+    brand: string;
+    imageUrl: string;
+    price: number;
+  }) => ({
+    id: item.id,
+    name: item.name,
+    brand: item.brand,
+    imageUrl: item.imageUrl,
+    price: item.price,
+  });
+
+  // items[0] is already the most-opened, since the list is sorted by the
+  // revealed-preference key above.
+  const mostViewedRow = items[0];
+
+  const showcaseTop = latestShowcase
+    ? [...latestShowcase.items]
+        .map(({ item }) => {
+          const votes = latestShowcase.votes.filter((v) => v.itemId === item.id);
+          return {
+            ...toHighlight(item),
+            likes: votes.filter((v) => v.liked).length,
+            votes: votes.length,
+          };
+        })
+        .sort((a, b) => b.likes - a.likes)[0] ?? null
+    : null;
+
+  const bestTier =
+    latestShortlist?.tiers.find((t) => t.tier === "best_pick") ??
+    latestShortlist?.tiers[0] ??
+    null;
+
+  const highlights = {
+    mostViewed: mostViewedRow
+      ? {
+          ...toHighlight(mostViewedRow),
+          openCount: mostViewedRow.seededOpenCount + mostViewedRow.liveOpenCount,
+        }
+      : null,
+    showcase: latestShowcase
+      ? {
+          token: latestShowcase.token,
+          revoked: Boolean(latestShowcase.revokedAt),
+          itemCount: latestShowcase.items.length,
+          totalVotes: latestShowcase.votes.length,
+          top: showcaseTop,
+        }
+      : null,
+    aiPick: latestShortlist
+      ? {
+          createdAt: latestShortlist.createdAt.toISOString(),
+          separable: latestShortlist.separable,
+          top: bestTier
+            ? { ...toHighlight(bestTier.item), reason: bestTier.reason }
+            : null,
+        }
+      : null,
+  };
+
   return (
     <WishlistGrid
+      highlights={highlights}
       items={items.map((item) => ({
         id: item.id,
         name: item.name,

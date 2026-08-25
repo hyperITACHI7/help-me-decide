@@ -5,6 +5,10 @@ import { startTriageWithSelection } from "@/app/wishlist/decide/actions";
 import { createShowcase } from "@/app/wishlist/showcaseActions";
 import { CatalogBrowser } from "@/components/CatalogBrowser";
 import { WishlistDock } from "@/components/WishlistDock";
+import {
+  WishlistHighlights,
+  type WishlistHighlightsData,
+} from "@/components/WishlistHighlights";
 import type { CatalogCardItem } from "@/components/CatalogProductCard";
 import { MIN_AI_ITEMS, MIN_SHOWCASE_ITEMS } from "@/lib/selectionLimits";
 
@@ -32,7 +36,13 @@ const COPY = {
   },
 } as const;
 
-export function WishlistGrid({ items }: { items: WishlistItem[] }) {
+export function WishlistGrid({
+  items,
+  highlights,
+}: {
+  items: WishlistItem[];
+  highlights: WishlistHighlightsData;
+}) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -69,6 +79,7 @@ export function WishlistGrid({ items }: { items: WishlistItem[] }) {
       showAddToWishlist={false}
       submitOpenItem={mode === null}
       selection={mode ? { selectedIds, onToggle: toggle } : undefined}
+      beforeGrid={<WishlistHighlights data={highlights} />}
       footer={
         /* F1: entry point visible on the wishlist without navigation, opt-in
            only (edge_case.md EC5 — never an interstitial that blocks

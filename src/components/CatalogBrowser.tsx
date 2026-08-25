@@ -45,6 +45,7 @@ export function CatalogBrowser({
   showOpenCount = false,
   showAddToWishlist = true,
   submitOpenItem = false,
+  beforeGrid,
   footer,
 }: {
   items: Item[];
@@ -58,6 +59,8 @@ export function CatalogBrowser({
   showOpenCount?: boolean;
   showAddToWishlist?: boolean;
   submitOpenItem?: boolean;
+  /** Slot rendered between the title/sort row and the product grid. */
+  beforeGrid?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
   // Rounded out to the step so the slider ends on clean rupee values.
@@ -189,6 +192,8 @@ export function CatalogBrowser({
             </h1>
             <SortDropdown options={SORTS} value={sort} onChange={setSort} />
           </div>
+
+          {beforeGrid ? <div className="mt-4">{beforeGrid}</div> : null}
 
           {filtered.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted">
