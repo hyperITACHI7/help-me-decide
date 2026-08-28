@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { IconSparkles } from "@tabler/icons-react";
 import { fetchCategoryPicks } from "@/app/wishlist/categoryActions";
-import { ProductImage } from "@/components/ProductImage";
+import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
 import { TIER_LABELS } from "@/lib/tierDisplay";
 import type { CategoryPicksView } from "@/lib/categoryPicks";
 import type { NarrowingQuestion } from "@/lib/shortlist";
@@ -66,6 +66,31 @@ export function CategoryPicksPanel({
 
   const byId = new Map(items.map((item) => [item.id, item]));
 
+  const cards: CardData[] =
+    view?.status === "ok"
+      ? view.tiers.flatMap((tier) => {
+          const item = byId.get(tier.itemId);
+          if (!item) return [];
+          return [
+            {
+              src: item.imageUrl,
+              // Doubles as the layoutId key for the expand animation, so it has
+              // to be unique per card. Picks are validated distinct upstream.
+              title: item.name,
+              category: `${TIER_LABELS[tier.tier]} · ₹${item.price}`,
+              subtitle: tier.reason,
+              content: (
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-ink">{item.brand}</p>
+                  <p className="text-base font-semibold text-ink">₹{item.price}</p>
+                  <p className="text-sm leading-relaxed text-muted">{tier.reason}</p>
+                </div>
+              ),
+            },
+          ];
+        })
+      : [];
+
   return (
     <section className="mb-6 rounded-xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -104,7 +129,7 @@ export function CategoryPicksPanel({
         </div>
       )}
 
-      <div className="mt-4" aria-live="polite">
+      <div className="mt-2" aria-live="polite">
         {view === null && <PanelNote>Working out the picks…</PanelNote>}
 
         {view?.status === "not_configured" && (
@@ -126,44 +151,16 @@ export function CategoryPicksPanel({
         )}
 
         {view?.status === "ok" && (
-          <ul
-            className={cn(
-              "grid gap-3 transition-opacity sm:grid-cols-3",
-              pending && "opacity-50"
-            )}
-          >
-            {view.tiers.map((tier) => {
-              const item = byId.get(tier.itemId);
-              if (!item) return null;
-              return (
-                <li
-                  key={tier.tier}
-                  className="flex gap-3 rounded-lg border border-border bg-canvas p-2"
-                >
-                  <div className="h-20 w-16 shrink-0 overflow-hidden rounded bg-surface">
-                    <ProductImage
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="inline-block rounded bg-brand-soft px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-dark">
-                      {TIER_LABELS[tier.tier]}
-                    </span>
-                    <p className="mt-1 truncate text-xs font-bold text-ink">
-                      {item.brand}
-                    </p>
-                    <p className="truncate text-[11px] text-muted">{item.name}</p>
-                    <p className="text-[11px] font-bold text-ink">₹{item.price}</p>
-                    <p className="mt-1 line-clamp-3 text-[11px] text-muted">
-                      {tier.reason}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div className={cn("transition-opacity", pending && "opacity-50")}>
+            <Carousel
+              // Remount on a new set of picks so the entry stagger replays and
+              // the cards don't cross-fade into each other's layoutIds.
+              key={cards.map((card) => card.title).join("|")}
+              items={cards.map((card, index) => (
+                <Card key={card.title} card={card} index={index} layout />
+              ))}
+            />
+          </div>
         )}
       </div>
     </section>

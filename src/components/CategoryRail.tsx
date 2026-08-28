@@ -8,20 +8,21 @@ import {
   IconShirtSport,
   IconShoe,
 } from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
+import {
+  AnimatedTooltip,
+  type AnimatedTooltipItem,
+} from "@/components/ui/animated-tooltip";
 
-/** Only categories actually present in the wishlist are ever rendered. */
 function iconFor(category: string) {
   const key = category.toLowerCase();
   if (key.includes("shoe") || key.includes("sneaker")) return IconShoe;
   if (key.includes("tshirt") || key.includes("t-shirt")) return IconShirtSport;
   if (key.includes("shirt")) return IconShirt;
   if (key.includes("jacket") || key.includes("coat")) return IconJacket;
-  if (key.includes("trouser") || key.includes("pant") || key.includes("jean"))
-    return IconHanger;
   return IconHanger;
 }
 
+/** Only categories actually present in the wishlist are ever rendered. */
 export function CategoryRail({
   categories,
   active,
@@ -36,65 +37,40 @@ export function CategoryRail({
 }) {
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
 
+  const items: AnimatedTooltipItem[] = [
+    {
+      id: 0,
+      name: "View all",
+      designation: `${total} items`,
+      icon: <IconLayoutGrid className="h-6 w-6" />,
+      selected: active === null,
+      onClick: () => onSelect(null),
+    },
+    ...categories.map((category, i) => {
+      const Icon = iconFor(category);
+      const count = counts[category] ?? 0;
+      return {
+        id: i + 1,
+        name: category,
+        designation: `${count} ${count === 1 ? "item" : "items"}`,
+        icon: <Icon className="h-6 w-6" />,
+        selected: active === category,
+        onClick: () => onSelect(category),
+      };
+    }),
+  ];
+
   return (
+    // overflow-x-auto forces overflow-y to auto, so the tooltip is clipped by
+    // this box rather than escaping it. pt-24 reserves the room it needs: the
+    // tooltip sits at -top-16, and the cursor-tracked tilt swings its corners
+    // ~15px higher still (measured at 16px headroom under pt-20, which was
+    // cutting it fine).
     <nav
       aria-label="Wishlist categories"
-      className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+      className="no-scrollbar mb-2 flex items-center gap-8 overflow-x-auto px-1 pt-24 pb-2"
     >
-      <RailButton
-        icon={<IconLayoutGrid className="h-5 w-5" />}
-        label="View all"
-        count={total}
-        selected={active === null}
-        onClick={() => onSelect(null)}
-      />
-      {categories.map((category) => {
-        const Icon = iconFor(category);
-        return (
-          <RailButton
-            key={category}
-            icon={<Icon className="h-5 w-5" />}
-            label={category}
-            count={counts[category] ?? 0}
-            selected={active === category}
-            onClick={() => onSelect(category)}
-          />
-        );
-      })}
+      <AnimatedTooltip items={items} />
     </nav>
-  );
-}
-
-function RailButton({
-  icon,
-  label,
-  count,
-  selected,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  count: number;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      className={cn(
-        "flex shrink-0 flex-col items-center gap-1 rounded-xl border px-4 py-2.5 transition-colors",
-        selected
-          ? "border-brand bg-brand-soft text-brand-dark"
-          : "border-border bg-surface text-ink hover:border-brand"
-      )}
-    >
-      {icon}
-      <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide">
-        {label}
-      </span>
-      <span className="text-[10px] font-medium text-muted">{count}</span>
-    </button>
   );
 }
