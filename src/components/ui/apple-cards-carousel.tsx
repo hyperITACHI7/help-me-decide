@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import { ProductImage } from "@/components/ProductImage";
+import { Lens } from "@/components/ui/lens";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 
 /**
@@ -43,12 +44,6 @@ export type CardData = {
   src: string;
   title: string;
   category: string;
-  /**
-   * Extra line on the card face, under the title. Not upstream — added because
-   * the reason a pick was made is the point of the feature, and burying it
-   * behind a click would make the cards decorative.
-   */
-  subtitle?: React.ReactNode;
   content: React.ReactNode;
 };
 
@@ -190,6 +185,7 @@ export const Card = ({
   layout?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
+  const [hovering, setHovering] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { onCardClose } = useContext(CarouselContext);
 
@@ -268,10 +264,40 @@ export const Card = ({
         type="button"
         layoutId={layout ? `card-${card.title}` : undefined}
         onClick={() => setOpen(true)}
-        className="relative z-10 flex h-80 w-60 flex-col items-start justify-start overflow-hidden rounded-3xl bg-canvas md:h-[26rem] md:w-[19.5rem]"
+        // justify-end drops the caption to the bottom: the label sat over the
+        // top of the garment, which is the part of a product photo you most
+        // want to see.
+        className="relative z-10 flex h-80 w-60 flex-col items-start justify-end overflow-hidden rounded-3xl bg-canvas md:h-[26rem] md:w-[19.5rem]"
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-full bg-gradient-to-b from-black/60 via-black/10 to-transparent" />
-        <div className="relative z-40 p-5">
+        {/* The lens owns the hover state, and the caption reads it: on hover the
+            text and its shade clear away so the magnifier has a clean photo to
+            work against. */}
+        <Lens
+          hovering={hovering}
+          setHovering={setHovering}
+          zoomFactor={1.6}
+          lensSize={180}
+          className="absolute inset-0 rounded-3xl"
+        >
+          <BlurImage
+            src={card.src}
+            alt={card.title}
+            className="absolute inset-0 object-cover"
+          />
+        </Lens>
+
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-x-0 bottom-0 z-30 h-1/2 bg-gradient-to-t from-black/85 via-black/45 to-transparent transition-opacity duration-300",
+            hovering && "opacity-0",
+          )}
+        />
+        <div
+          className={cn(
+            "pointer-events-none relative z-40 w-full p-5 transition-opacity duration-300",
+            hovering && "opacity-0",
+          )}
+        >
           <motion.p
             // Upstream keys this off card.category here but card.title in the
             // modal, so the two never match and the text jump-cuts instead of
@@ -283,21 +309,11 @@ export const Card = ({
           </motion.p>
           <motion.p
             layoutId={layout ? `title-${card.title}` : undefined}
-            className="mt-2 max-w-xs text-left font-sans text-lg font-semibold [text-wrap:balance] text-white md:text-2xl"
+            className="mt-1 max-w-xs text-left font-sans text-lg font-semibold [text-wrap:balance] text-white md:text-xl"
           >
             {card.title}
           </motion.p>
-          {card.subtitle && (
-            <p className="mt-2 max-w-xs text-left font-sans text-xs leading-relaxed text-white/85">
-              {card.subtitle}
-            </p>
-          )}
         </div>
-        <BlurImage
-          src={card.src}
-          alt={card.title}
-          className="absolute inset-0 z-10 object-cover"
-        />
       </motion.button>
     </>
   );

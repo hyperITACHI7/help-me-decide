@@ -1,5 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { accentAt } from "@/lib/accents";
 import { IconMenu2, IconX } from "@tabler/icons-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -116,23 +117,36 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
         className,
       )}
     >
-      {items.map((item, idx) => (
-        <a
-          onMouseEnter={() => setHovered(idx)}
-          onClick={onItemClick}
-          className="relative whitespace-nowrap px-4 py-2 text-neutral-600 dark:text-neutral-300"
-          key={`link-${idx}`}
-          href={item.link}
-        >
-          {hovered === idx && (
-            <motion.div
-              layoutId="hovered"
-              className="absolute inset-0 -z-10 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
-            />
-          )}
-          <span className="relative">{item.name}</span>
-        </a>
-      ))}
+      {items.map((item, idx) => {
+        // One pill morphs between items via layoutId, so giving each item its
+        // own accent means the pill also changes colour as it travels — which
+        // is the point. The text colour rides along so the label reads against
+        // its own wash.
+        const accent = accentAt(idx);
+        return (
+          <a
+            onMouseEnter={() => setHovered(idx)}
+            onClick={onItemClick}
+            className={cn(
+              "relative whitespace-nowrap rounded-full px-4 py-2 transition-colors duration-200",
+              hovered === idx ? accent.text : "text-neutral-600 dark:text-neutral-300",
+            )}
+            key={`link-${idx}`}
+            href={item.link}
+          >
+            {hovered === idx && (
+              <motion.div
+                layoutId="hovered"
+                className={cn(
+                  "absolute inset-0 -z-10 h-full w-full rounded-full",
+                  accent.pill,
+                )}
+              />
+            )}
+            <span className="relative">{item.name}</span>
+          </a>
+        );
+      })}
     </motion.div>
   );
 };

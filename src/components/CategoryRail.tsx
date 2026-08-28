@@ -12,6 +12,7 @@ import {
   AnimatedTooltip,
   type AnimatedTooltipItem,
 } from "@/components/ui/animated-tooltip";
+import { accentAt } from "@/lib/accents";
 
 function iconFor(category: string) {
   const key = category.toLowerCase();
@@ -45,10 +46,13 @@ export function CategoryRail({
       icon: <IconLayoutGrid className="h-6 w-6" />,
       selected: active === null,
       onClick: () => onSelect(null),
+      // Deliberately un-accented: "View all" is the neutral default, and
+      // colouring it would imply it is one category among the rest.
     },
     ...categories.map((category, i) => {
       const Icon = iconFor(category);
       const count = counts[category] ?? 0;
+      const accent = accentAt(i);
       return {
         id: i + 1,
         name: category,
@@ -56,19 +60,24 @@ export function CategoryRail({
         icon: <Icon className="h-6 w-6" />,
         selected: active === category,
         onClick: () => onSelect(category),
+        hoverClass: accent.circleHover,
+        selectedClass: accent.circleSelected,
       };
     }),
   ];
 
   return (
-    // overflow-x-auto forces overflow-y to auto, so the tooltip is clipped by
-    // this box rather than escaping it. pt-24 reserves the room it needs: the
-    // tooltip sits at -top-16, and the cursor-tracked tilt swings its corners
-    // ~15px higher still (measured at 16px headroom under pt-20, which was
-    // cutting it fine).
+    // No overflow on this box: the tooltip sits at -top-16 and is allowed to
+    // overlap whatever is above the rail rather than having blank space
+    // reserved for it. That rules out a horizontal scroller (overflow-x-auto
+    // forces overflow-y to auto, which would clip it), so the rail wraps
+    // instead — fine at any realistic category count.
+    //
+    // md:pl-14 clears the collapsed filter rail on the left, which the first
+    // circle was otherwise sitting right up against.
     <nav
       aria-label="Wishlist categories"
-      className="no-scrollbar mb-2 flex items-center gap-8 overflow-x-auto px-1 pt-24 pb-2"
+      className="mb-2 flex flex-wrap items-center gap-x-8 gap-y-4 px-1 pt-2 pb-2 md:pl-14"
     >
       <AnimatedTooltip items={items} />
     </nav>

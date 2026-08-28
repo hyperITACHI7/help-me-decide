@@ -29,6 +29,9 @@ export type AnimatedTooltipItem = {
   icon?: React.ReactNode;
   selected?: boolean;
   onClick?: () => void;
+  /** Accent classes for the hovered and selected states. */
+  hoverClass?: string;
+  selectedClass?: string;
 };
 
 export const AnimatedTooltip = ({ items }: { items: AnimatedTooltipItem[] }) => {
@@ -109,8 +112,8 @@ export const AnimatedTooltip = ({ items }: { items: AnimatedTooltipItem[] }) => 
             className={cn(
               "relative !m-0 flex h-14 w-14 items-center justify-center rounded-full border-2 !p-0 transition duration-500 group-hover:z-30 group-hover:scale-105",
               item.selected
-                ? "border-brand bg-brand-soft text-brand-dark"
-                : "border-border bg-surface text-ink",
+                ? (item.selectedClass ?? "border-brand bg-brand-soft text-brand-dark")
+                : cn("border-border bg-surface text-ink", item.hoverClass),
             )}
           >
             {/* Children are pointer-events-none so offsetX stays measured

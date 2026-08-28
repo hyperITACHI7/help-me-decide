@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { IconSparkles } from "@tabler/icons-react";
 import { fetchCategoryPicks } from "@/app/wishlist/categoryActions";
 import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
+import { LoaderOne } from "@/components/ui/loader";
 import { TIER_LABELS } from "@/lib/tierDisplay";
 import type { CategoryPicksView } from "@/lib/categoryPicks";
 import type { NarrowingQuestion } from "@/lib/shortlist";
@@ -78,7 +79,6 @@ export function CategoryPicksPanel({
               // to be unique per card. Picks are validated distinct upstream.
               title: item.name,
               category: `${TIER_LABELS[tier.tier]} · ₹${item.price}`,
-              subtitle: tier.reason,
               content: (
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-ink">{item.brand}</p>
@@ -130,7 +130,15 @@ export function CategoryPicksPanel({
       )}
 
       <div className="mt-2" aria-live="polite">
-        {view === null && <PanelNote>Working out the picks…</PanelNote>}
+        {/* The first evaluation of a category is a live model call — a few
+            seconds, against a card row that is about to appear. The loader
+            holds roughly that space so the panel doesn't jump. */}
+        {view === null && (
+          <div className="flex h-32 flex-col items-center justify-center gap-3">
+            <LoaderOne />
+            <p className="text-xs text-muted">Working out the picks…</p>
+          </div>
+        )}
 
         {view?.status === "not_configured" && (
           <PanelNote>
@@ -151,7 +159,16 @@ export function CategoryPicksPanel({
         )}
 
         {view?.status === "ok" && (
-          <div className={cn("transition-opacity", pending && "opacity-50")}>
+          <div className="relative">
+            {/* Answering a question re-runs the model against the stale cards,
+                so they dim behind the same loader rather than sitting there
+                looking current. */}
+            {pending && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center">
+                <LoaderOne />
+              </div>
+            )}
+            <div className={cn("transition-opacity", pending && "opacity-40")}>
             <Carousel
               // Remount on a new set of picks so the entry stagger replays and
               // the cards don't cross-fade into each other's layoutIds.
@@ -160,6 +177,7 @@ export function CategoryPicksPanel({
                 <Card key={card.title} card={card} index={index} layout />
               ))}
             />
+            </div>
           </div>
         )}
       </div>

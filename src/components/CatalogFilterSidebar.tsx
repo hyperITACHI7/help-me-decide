@@ -77,8 +77,22 @@ function FilterPanel({
 
   return (
     <div className="flex w-full min-w-0 flex-col">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
+      {/* Collapsed, the labels are hidden and only the icons remain, which left
+          them hugging the rail's left edge instead of sitting in the middle of
+          it. Centring applies to every icon row so the collapsed rail reads as
+          a single column. */}
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          open ? "justify-between" : "justify-center",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-2",
+            !open && "justify-center",
+          )}
+        >
           <span className="relative shrink-0">
             <IconFilter className="h-5 w-5 text-ink" />
             {!open && activeCount > 0 && (
@@ -199,7 +213,7 @@ function FilterSection({
   const { open, animate } = useSidebar();
   return (
     <div className="mt-4 border-t border-border pt-3">
-      <div className="flex items-center gap-2">
+      <div className={cn("flex items-center gap-2", !open && "justify-center")}>
         {icon}
         <Reveal className="text-xs font-bold uppercase tracking-wide text-ink">
           {title}
