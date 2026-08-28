@@ -36,7 +36,38 @@ model Session {
   triageDecisions TriageDecision[]
   shortlists      Shortlist[]
   shareLinks      ShareLink[]
+  categoryPicks   CategoryPicks[]
   analyticsEvents AnalyticsEvent[]
+}
+
+// Cache for the wishlist's per-category AI picks, so a category is evaluated
+// once rather than on every page view (the shortlist NFR in
+// problem_statement.md §3.3, and the Groq key is shared with a sibling
+// project).
+//
+// itemsHash is a hash of the category's current item ids, NOT a counter of
+// additions: keying on the actual contents means a DELETION invalidates too,
+// which matters because Clean Wishlist can remove an item that is currently
+// somebody's "Best pick". Stale rows are simply never read again.
+//
+// answersHash distinguishes the free automatic picks ("") from picks refined
+// by the optional narrowing questions, so both are cached independently.
+// Picks are stored as Json rather than FK rows for the same reason: a pick is
+// only ever read back through a matching itemsHash, so it cannot outlive the
+// items it references.
+model CategoryPicks {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  category    String
+  itemsHash   String
+  answersHash String   @default("")
+  questions   Json?
+  picks       Json
+  createdAt   DateTime @default(now())
+
+  @@unique([sessionId, category, itemsHash, answersHash])
+  @@index([sessionId])
 }
 
 // No discount/priceDrop/coupon field anywhere in this schema — structural

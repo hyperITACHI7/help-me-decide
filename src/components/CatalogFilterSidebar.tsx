@@ -102,20 +102,24 @@ function FilterPanel({
         )}
       </div>
 
-      <FilterSection
-        title="Category"
-        icon={<IconCategory className="h-5 w-5 shrink-0 text-muted" />}
-      >
-        {categoryCounts.map(([category, count]) => (
-          <FilterCheckbox
-            key={category}
-            label={category}
-            count={count}
-            checked={categories.has(category)}
-            onChange={() => onToggleCategory(category)}
-          />
-        ))}
-      </FilterSection>
+      {/* Empty when the caller owns the category control (the wishlist rail) —
+          render nothing rather than a headed section with no options. */}
+      {categoryCounts.length > 0 && (
+        <FilterSection
+          title="Category"
+          icon={<IconCategory className="h-5 w-5 shrink-0 text-muted" />}
+        >
+          {categoryCounts.map(([category, count]) => (
+            <FilterCheckbox
+              key={category}
+              label={category}
+              count={count}
+              checked={categories.has(category)}
+              onChange={() => onToggleCategory(category)}
+            />
+          ))}
+        </FilterSection>
+      )}
 
       <FilterSection
         title="Brand"

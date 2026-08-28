@@ -4,6 +4,8 @@ import { useState } from "react";
 import { startTriageWithSelection } from "@/app/wishlist/decide/actions";
 import { createShowcase } from "@/app/wishlist/showcaseActions";
 import { CatalogBrowser } from "@/components/CatalogBrowser";
+import { CategoryRail } from "@/components/CategoryRail";
+import { CategoryPicksPanel } from "@/components/CategoryPicksPanel";
 import { WishlistDock } from "@/components/WishlistDock";
 import {
   WishlistHighlights,
@@ -24,7 +26,7 @@ const COPY = {
     title: "Pick the items you're torn between",
     action: startTriageWithSelection,
     min: MIN_AI_ITEMS,
-    cta: (n: number) => `Let AI pick from ${n}`,
+    cta: (n: number) => `Swipe through ${n}`,
     short: (min: number, n: number) => `Select at least ${min} (${n} picked)`,
   },
   showcase: {
@@ -45,6 +47,19 @@ export function WishlistGrid({
 }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // null = "View all": the default view runs no AI at all, so a Ready Buyer
+  // (0% decision difficulty, problem_statement.md §4) never meets the feature.
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const categories = [...new Set(items.map((i) => i.category))].sort();
+  const counts = items.reduce<Record<string, number>>((acc, item) => {
+    acc[item.category] = (acc[item.category] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const visibleItems = activeCategory
+    ? items.filter((i) => i.category === activeCategory)
+    : items;
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -70,8 +85,8 @@ export function WishlistGrid({
 
   return (
     <CatalogBrowser
-      items={items}
-      title="Wishlist"
+      items={visibleItems}
+      title={activeCategory ?? "Wishlist"}
       breadcrumb="Wishlist"
       showOpenCount
       // "Add to Wishlist" is meaningless on the wishlist itself; opening an
@@ -79,7 +94,28 @@ export function WishlistGrid({
       showAddToWishlist={false}
       submitOpenItem={mode === null}
       selection={mode ? { selectedIds, onToggle: toggle } : undefined}
-      beforeGrid={<WishlistHighlights data={highlights} />}
+      // The rail is the category control here, so the sidebar's own Category
+      // facet would be a second, conflicting one.
+      hideCategoryFilter
+      beforeGrid={
+        <>
+          <CategoryRail
+            categories={categories}
+            active={activeCategory}
+            counts={counts}
+            onSelect={setActiveCategory}
+          />
+          {activeCategory ? (
+            <CategoryPicksPanel
+              key={activeCategory}
+              category={activeCategory}
+              items={visibleItems}
+            />
+          ) : (
+            <WishlistHighlights data={highlights} />
+          )}
+        </>
+      }
       footer={
         /* F1: entry point visible on the wishlist without navigation, opt-in
            only (edge_case.md EC5 — never an interstitial that blocks

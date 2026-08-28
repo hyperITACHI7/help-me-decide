@@ -93,6 +93,122 @@ Return ONLY a JSON object: {"questions": [{"id": "q1", "text": "...", "options":
   return { status: "ok", questions };
 }
 
+export type CategoryCandidate = CandidateItem & { popularity: number };
+
+export type CategoryPicksResult =
+  | { status: "not_configured" }
+  | { status: "error"; message: string }
+  | { status: "too_few"; count: number }
+  | { status: "ok"; tiers: TierResult[] };
+
+/**
+ * Category-scoped version of synthesizeTiers, for the wishlist's per-category
+ * picks. Three differences from the cross-wishlist flow, all deliberate:
+ *
+ *  - "most_trending" (shown as "Most Popular") is NOT an AI judgment. It is
+ *    pinned to the highest synthetic popularity score (see lib/popularity.ts)
+ *    and excluded from the AI's choices, so the model can neither contradict
+ *    the number on screen nor assert popularity it has no data for. It only
+ *    writes that tier's sentence.
+ *  - Answers are optional and may be partial — the picks render before the
+ *    shopper answers anything, and improve if they do.
+ *  - Comparisons are within one category, so "value_for_money" finally means
+ *    something: across categories it was just comparing a jacket's price to a
+ *    t-shirt's, which is a category artifact rather than a value judgment.
+ */
+export async function synthesizeCategoryTiers(
+  category: string,
+  candidates: CategoryCandidate[],
+  answers: { question: string; answer: string }[]
+): Promise<CategoryPicksResult> {
+  if (candidates.length < 3) {
+    return { status: "too_few", count: candidates.length };
+  }
+
+  const capped = candidates.slice(0, MAX_CANDIDATES_FOR_AI);
+
+  // Deterministic, and tie-broken by name so the pick never depends on array
+  // order (which varies with the wishlist's open-count sort).
+  const mostPopular = [...capped].sort(
+    (a, b) => b.popularity - a.popularity || a.name.localeCompare(b.name)
+  )[0]!;
+  const rest = capped.filter((c) => c.id !== mostPopular.id);
+
+  const qaLines = answers.length
+    ? answers
+        .map((a, i) => `Q${i + 1}: ${a.question}\nA${i + 1}: ${a.answer}`)
+        .join("\n")
+    : "(The shopper has not answered any narrowing questions — judge on the items alone.)";
+
+  const prompt = `A shopper is deciding between the ${category} on their wishlist.
+
+What they told us:
+${qaLines}
+
+The item already assigned to the "Most Popular" tier (do NOT reuse it):
+id="${mostPopular.id}" — ${mostPopular.brand} ${mostPopular.name}
+
+The remaining candidates to choose from:
+${candidateLines(rest)}
+
+Choose exactly 2 DIFFERENT items from the remaining candidates:
+- "best_pick": the item that best suits this shopper. If they answered questions, weigh those answers heavily; if they answered none, judge on the item's own attributes.
+- "value_for_money": a DIFFERENT item that gives the most for its price, judged on price against attributes and quality only — never any discount, sale, or predicted price change.
+
+Also write one sentence explaining why the "Most Popular" item above is worth a look, based on its own attributes. Do not claim to know sales figures or how many people bought it.
+
+These are three different lenses on the same category, not three votes for one item. Every reason must be one sentence, grounded in that item's real attributes.
+
+${PRICING_POLICY_LINE}
+
+Return ONLY a JSON object:
+{"best_pick": {"itemId": "...", "reason": "..."}, "value_for_money": {"itemId": "...", "reason": "..."}, "most_popular_reason": "..."}`;
+
+  const result = await callGroqJson<{
+    best_pick: { itemId: string; reason: string };
+    value_for_money: { itemId: string; reason: string };
+    most_popular_reason: string;
+  }>("large", prompt, { temperature: 0.3 });
+
+  if (!result.configured) return { status: "not_configured" };
+  if (result.error || !result.parsed) {
+    return { status: "error", message: result.error ?? "No response" };
+  }
+
+  const { best_pick, value_for_money, most_popular_reason } = result.parsed;
+  if (!best_pick?.itemId || !value_for_money?.itemId || !most_popular_reason) {
+    return { status: "error", message: "Model returned an incomplete pick set" };
+  }
+
+  // Same hallucinated-id and duplicate-item guards as the cross-wishlist path
+  // (edge_case.md EC13/EC14), plus the pinned item must stay excluded.
+  const restIds = new Set(rest.map((c) => c.id));
+  if (!restIds.has(best_pick.itemId) || !restIds.has(value_for_money.itemId)) {
+    return { status: "error", message: "Model picked an item outside the candidate set" };
+  }
+  if (best_pick.itemId === value_for_money.itemId) {
+    return { status: "error", message: "Model returned the same item for two tiers" };
+  }
+
+  const reasons = [best_pick.reason, value_for_money.reason, most_popular_reason];
+  if (anyViolatesPricingPolicy(reasons)) {
+    return { status: "error", message: "A tier reason violated pricing policy" };
+  }
+
+  return {
+    status: "ok",
+    tiers: [
+      { tier: "best_pick", itemId: best_pick.itemId, reason: best_pick.reason },
+      { tier: "most_trending", itemId: mostPopular.id, reason: most_popular_reason },
+      {
+        tier: "value_for_money",
+        itemId: value_for_money.itemId,
+        reason: value_for_money.reason,
+      },
+    ],
+  };
+}
+
 export async function synthesizeTiers(
   candidates: CandidateItem[],
   answers: { question: string; answer: string }[]

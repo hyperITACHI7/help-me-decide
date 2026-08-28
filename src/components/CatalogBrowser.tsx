@@ -45,6 +45,7 @@ export function CatalogBrowser({
   showOpenCount = false,
   showAddToWishlist = true,
   submitOpenItem = false,
+  hideCategoryFilter = false,
   beforeGrid,
   footer,
 }: {
@@ -59,6 +60,8 @@ export function CatalogBrowser({
   showOpenCount?: boolean;
   showAddToWishlist?: boolean;
   submitOpenItem?: boolean;
+  /** Set when the caller supplies its own category control (the wishlist rail). */
+  hideCategoryFilter?: boolean;
   /** Slot rendered between the title/sort row and the product grid. */
   beforeGrid?: React.ReactNode;
   footer?: React.ReactNode;
@@ -163,7 +166,7 @@ export function CatalogBrowser({
         {/* Reserves only the collapsed rail; the panel itself is absolute. */}
         <div className="relative shrink-0 md:w-[60px]">
           <CatalogFilterSidebar
-            categoryCounts={[...categoryCounts.entries()]}
+            categoryCounts={hideCategoryFilter ? [] : [...categoryCounts.entries()]}
             brandCounts={[...brandCounts.entries()]}
             priceBounds={priceBounds}
             priceRange={priceRange}
