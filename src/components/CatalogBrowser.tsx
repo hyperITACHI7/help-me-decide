@@ -163,8 +163,10 @@ export function CatalogBrowser({
       </p>
 
       <div className="mt-3 flex flex-col gap-6 md:flex-row">
-        {/* Reserves only the collapsed rail; the panel itself is absolute. */}
-        <div className="relative shrink-0 md:w-[60px]">
+        {/* Reserves only the collapsed rail's width in the flow; the panel
+            itself is fixed to the viewport, not positioned relative to this
+            column, so it can stay on screen while the page scrolls. */}
+        <div className="shrink-0 md:w-[60px]">
           <CatalogFilterSidebar
             categoryCounts={hideCategoryFilter ? [] : [...categoryCounts.entries()]}
             brandCounts={[...brandCounts.entries()]}

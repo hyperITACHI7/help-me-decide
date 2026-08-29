@@ -38,10 +38,16 @@ export function CatalogFilterSidebar(props: FilterPanelProps) {
         // The vendored sidebar only opens on hover; opening on focus too keeps
         // the filters reachable by keyboard.
         onFocusCapture={() => setOpen(true)}
-        // Absolutely positioned on desktop so expanding floats the panel over
-        // the catalogue instead of reflowing it — the row only ever reserves
-        // the collapsed rail's width.
-        className="h-fit gap-4 rounded-2xl border border-border bg-surface md:absolute md:left-0 md:top-0 md:z-30 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto md:overflow-x-hidden md:shadow-lg"
+        // Fixed to the viewport and vertically centred on desktop: pinned to
+        // top:0 it sat right under the page title and scrolled away with the
+        // rest of the (often very long, 60-item) page. Fixed + top-1/2 keeps
+        // it on screen and centred regardless of scroll position; expanding
+        // still floats the panel over the catalogue rather than reflowing it,
+        // since the reserving column in CatalogBrowser only ever holds the
+        // collapsed rail's width. max-h-[80vh] leaves an even margin above and
+        // below so an expanded panel taller than the rail never touches the
+        // sticky header or the bottom edge.
+        className="h-fit gap-4 rounded-2xl border border-border bg-surface md:fixed md:left-4 md:top-1/2 md:z-30 md:max-h-[80vh] md:-translate-y-1/2 md:overflow-y-auto md:overflow-x-hidden md:shadow-lg"
       >
         <FilterPanel {...props} />
       </SidebarBody>
