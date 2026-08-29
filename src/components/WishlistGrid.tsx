@@ -7,10 +7,6 @@ import { CatalogBrowser } from "@/components/CatalogBrowser";
 import { CategoryRail } from "@/components/CategoryRail";
 import { CategoryPicksPanel } from "@/components/CategoryPicksPanel";
 import { WishlistDock } from "@/components/WishlistDock";
-import {
-  WishlistHighlights,
-  type WishlistHighlightsData,
-} from "@/components/WishlistHighlights";
 import type { CatalogCardItem } from "@/components/CatalogProductCard";
 import { MIN_AI_ITEMS, MIN_SHOWCASE_ITEMS } from "@/lib/selectionLimits";
 
@@ -40,10 +36,8 @@ const COPY = {
 
 export function WishlistGrid({
   items,
-  highlights,
 }: {
   items: WishlistItem[];
-  highlights: WishlistHighlightsData;
 }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -105,14 +99,12 @@ export function WishlistGrid({
             counts={counts}
             onSelect={setActiveCategory}
           />
-          {activeCategory ? (
+          {activeCategory && (
             <CategoryPicksPanel
               key={activeCategory}
               category={activeCategory}
               items={visibleItems}
             />
-          ) : (
-            <WishlistHighlights data={highlights} />
           )}
         </>
       }
