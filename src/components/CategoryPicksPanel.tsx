@@ -47,14 +47,7 @@ export function CategoryPicksPanel({
   const questions: NarrowingQuestion[] =
     view && (view.status === "ok" || view.status === "too_few") ? view.questions : [];
 
-  function answer(question: NarrowingQuestion, option: string) {
-    const next = { ...answers };
-    // Tapping the chosen option again clears it — answering is optional, so
-    // un-answering has to be possible too.
-    if (next[question.id] === option) delete next[question.id];
-    else next[question.id] = option;
-    setAnswers(next);
-
+  function refetch(next: Record<string, string>) {
     const payload = questions
       .filter((q) => next[q.id])
       .map((q) => ({ question: q.text, answer: next[q.id]! }));
@@ -64,6 +57,23 @@ export function CategoryPicksPanel({
       if (live.current) setView(result);
     });
   }
+
+  function answer(question: NarrowingQuestion, option: string) {
+    const next = { ...answers };
+    // Tapping the chosen option again clears it — answering is optional, so
+    // un-answering has to be possible too.
+    if (next[question.id] === option) delete next[question.id];
+    else next[question.id] = option;
+    setAnswers(next);
+    refetch(next);
+  }
+
+  function clearAnswers() {
+    setAnswers({});
+    refetch({});
+  }
+
+  const answeredCount = Object.keys(answers).length;
 
   const byId = new Map(items.map((item) => [item.id, item]));
 
@@ -92,99 +102,180 @@ export function CategoryPicksPanel({
       : [];
 
   return (
-    <section className="mb-6 rounded-xl border border-border bg-surface p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <IconSparkles className="h-4 w-4 text-brand" />
-        <h2 className="text-sm font-bold text-ink">Picks for {category}</h2>
-        {/* N4: the AI's pick is one input, never presented as authoritative. */}
-        <span className="text-xs text-muted">— a suggestion, not a verdict</span>
-      </div>
-
-      {questions.length > 0 && (
-        <div className="mt-3 space-y-2 border-t border-border pt-3">
-          <p className="text-xs text-muted">
-            Optional — answer any of these to sharpen the picks.
+    <section className="mb-8 overflow-hidden rounded-2xl border border-border bg-surface">
+      <header className="border-b border-border px-6 py-5">
+        <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-brand">
+          <IconSparkles className="h-3.5 w-3.5" />
+          AI picks
+        </span>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="text-xl font-bold tracking-tight text-ink">{category}</h2>
+          {/* N4: the AI's pick is one input, never presented as authoritative —
+              and §2.4, the three tiers are three different decision criteria,
+              not a ranking, which the subtitle has to say out loud. */}
+          <p className="text-sm text-muted">
+            Three ways to decide — a suggestion, not a verdict.
           </p>
-          {questions.map((question) => (
-            <div key={question.id} className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-ink">{question.text}</span>
-              {question.options.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => answer(question, option)}
-                  aria-pressed={answers[question.id] === option}
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    answers[question.id] === option
-                      ? "border-brand bg-brand text-white"
-                      : "border-border bg-canvas text-ink hover:border-brand"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          ))}
         </div>
-      )}
+      </header>
 
-      <div className="mt-2" aria-live="polite">
-        {/* The first evaluation of a category is a live model call — a few
-            seconds, against a card row that is about to appear. The loader
-            holds roughly that space so the panel doesn't jump. */}
-        {view === null && (
-          <div className="flex h-32 flex-col items-center justify-center gap-3">
-            <LoaderOne />
-            <p className="text-xs text-muted">Working out the picks…</p>
-          </div>
-        )}
-
-        {view?.status === "not_configured" && (
-          <PanelNote>
-            AI picks aren&apos;t configured on the server — this is a setup gap, not
-            a judgment about these items.
-          </PanelNote>
-        )}
-
-        {view?.status === "error" && (
-          <PanelNote>Couldn&apos;t reach the AI just now. Try again in a moment.</PanelNote>
-        )}
-
-        {view?.status === "too_few" && (
-          <PanelNote>
-            Only {view.count} distinct {view.count === 1 ? "product" : "products"} in{" "}
-            {category} — not enough to compare. Everything here is shown below.
-          </PanelNote>
-        )}
-
-        {view?.status === "ok" && (
-          <div className="relative">
-            {/* Answering a question re-runs the model against the stale cards,
-                so they dim behind the same loader rather than sitting there
-                looking current. */}
-            {pending && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center">
-                <LoaderOne />
-              </div>
-            )}
-            <div className={cn("transition-opacity", pending && "opacity-40")}>
-            <Carousel
-              // Remount on a new set of picks so the entry stagger replays and
-              // the cards don't cross-fade into each other's layoutIds.
-              key={cards.map((card) => card.title).join("|")}
-              items={cards.map((card, index) => (
-                <Card key={card.title} card={card} index={index} layout />
-              ))}
-            />
+      {/* Cards lead; the questions are a control rail beside them, not a gate in
+          front of them. They stack below xl, where the rail would squeeze the
+          carousel down to a single visible card. */}
+      <div className="flex flex-col gap-6 p-6 xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1" aria-live="polite">
+          {/* The first evaluation of a category is a live model call — a few
+              seconds, against a card row that is about to appear. The loader
+              holds roughly that space so the panel doesn't jump. */}
+          {view === null && (
+            <div className="flex h-[26rem] flex-col items-center justify-center gap-4">
+              <LoaderOne />
+              <p className="text-sm text-muted">Working out the picks…</p>
             </div>
-          </div>
+          )}
+
+          {view?.status === "not_configured" && (
+            <PanelNote>
+              AI picks aren&apos;t configured on the server — this is a setup gap,
+              not a judgment about these items.
+            </PanelNote>
+          )}
+
+          {view?.status === "error" && (
+            <PanelNote>
+              Couldn&apos;t reach the AI just now. Try again in a moment.
+            </PanelNote>
+          )}
+
+          {view?.status === "too_few" && (
+            <PanelNote>
+              Only {view.count} distinct{" "}
+              {view.count === 1 ? "product" : "products"} in {category} — not
+              enough to compare. Everything here is shown below.
+            </PanelNote>
+          )}
+
+          {view?.status === "ok" && (
+            <div className="relative">
+              {/* Answering a question re-runs the model against the stale cards,
+                  so they dim behind the same loader rather than sitting there
+                  looking current. */}
+              {pending && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center">
+                  <LoaderOne />
+                </div>
+              )}
+              <div className={cn("transition-opacity", pending && "opacity-40")}>
+                <Carousel
+                  // Remount on a new set of picks so the entry stagger replays
+                  // and the cards don't cross-fade into each other's layoutIds.
+                  key={cards.map((card) => card.title).join("|")}
+                  items={cards.map((card, index) => (
+                    <Card key={card.title} card={card} index={index} layout />
+                  ))}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {questions.length > 0 && (
+          <aside className="rounded-xl bg-canvas p-5 xl:w-[17rem] xl:shrink-0">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
+                Narrow it down
+              </h3>
+              {answeredCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAnswers}
+                  className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-dark"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              Optional. Any answer sharpens the picks.
+            </p>
+
+            {/* Side by side while the rail is stacked full-width under the
+                cards, one per row once it narrows into the rail at xl. A single
+                column at full width strands the pills against ~500px of empty
+                space. */}
+            <div className="mt-5 grid gap-5 sm:grid-cols-3 xl:grid-cols-1">
+              {questions.map((question) => (
+                <div
+                  key={question.id}
+                  role="group"
+                  aria-label={question.text}
+                  // Rules between questions rather than boxes around them: the
+                  // rail is already a panel, and nesting cards in cards is what
+                  // made this read as filler. Only in the narrow rail — the
+                  // grid's gap already separates the stacked columns.
+                  className="xl:border-t xl:border-border xl:pt-4 xl:first:border-t-0 xl:first:pt-0"
+                >
+                  <p className="text-xs font-semibold leading-snug text-ink">
+                    {question.text}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {question.options.map((option) => (
+                      <OptionPill
+                        key={option}
+                        selected={answers[question.id] === option}
+                        onClick={() => answer(question, option)}
+                      >
+                        {option}
+                      </OptionPill>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
         )}
       </div>
     </section>
   );
 }
 
+/**
+ * The ring is drawn with an inset box-shadow rather than a border so the pill
+ * doesn't shift by 2px when it fills on hover or selection — a border would
+ * change the box, an inset shadow paints inside it.
+ */
+function OptionPill({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        "rounded-full bg-transparent px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition duration-200",
+        selected
+          ? "bg-brand text-white shadow-[inset_0_0_0_2px_var(--color-brand)]"
+          : "text-ink shadow-[inset_0_0_0_2px_var(--color-border)] hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function PanelNote({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-muted">{children}</p>;
+  return (
+    <div className="flex min-h-[8rem] items-center justify-center px-6 py-8">
+      <p className="max-w-sm text-center text-sm leading-relaxed text-muted">
+        {children}
+      </p>
+    </div>
+  );
 }
