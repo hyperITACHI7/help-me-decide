@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { IconAdjustmentsHorizontal, IconSparkles, IconX } from "@tabler/icons-react";
+import {
+  IconAdjustmentsHorizontal,
+  IconRefresh,
+  IconSparkles,
+  IconX,
+} from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { fetchCategoryPicks } from "@/app/wishlist/categoryActions";
 import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
@@ -130,43 +135,108 @@ export function CategoryPicksPanel({
         </div>
       </header>
 
-      {/* Questions above the cards, not beside them — one column, so there's
-          only ever one width and one left edge to track. No fill behind them
-          either: a grey panel here read as a form to complete before you
-          could get to the cards, when it's meant to be a quick optional
-          aside on the way past. A border under it is enough to separate it
-          from the cards below. */}
-      {questions.length > 0 && (
-        <aside className="border-b border-border px-6 py-5">
-          <div className="flex items-baseline justify-between gap-2">
+      {/* Cards lead on the left; the questions are a control rail to their
+          right, matched to their height (no items-start override — default
+          stretch) rather than sized to its own content. One question at a
+          time leaves a tall rail mostly empty at content-height, so the
+          content fills it instead: bigger type, full-width options, the
+          block vertically centred in the space the cards give it. Below
+          that breakpoint the rail moves above the cards (order-first) full
+          width, where the same content just doesn't stretch. */}
+      <div className="flex flex-col gap-6 p-6 xl:flex-row">
+        {/* w-fit rather than flex-1: the carousel is a fixed 3 cards, so a
+            growing column just pads dead space onto its own right edge.
+            min-w-0 lets it shrink and scroll if the rail's floor leaves it
+            less than three cards' worth of room. */}
+        <div className="min-w-0 xl:w-fit" aria-live="polite">
+          {/* The first evaluation of a category is a live model call — a few
+              seconds, against a card row that is about to appear. The loader
+              holds roughly that space so the panel doesn't jump. */}
+          {view === null && (
+            <div className="flex h-[26rem] flex-col items-center justify-center gap-4">
+              <LoaderOne />
+              <p className="text-sm text-muted">Working out the picks…</p>
+            </div>
+          )}
+
+          {view?.status === "not_configured" && (
+            <PanelNote>
+              AI picks aren&apos;t configured on the server — this is a setup gap,
+              not a judgment about these items.
+            </PanelNote>
+          )}
+
+          {view?.status === "error" && (
+            <PanelNote>
+              Couldn&apos;t reach the AI just now. Try again in a moment.
+            </PanelNote>
+          )}
+
+          {view?.status === "too_few" && (
+            <PanelNote>
+              Only {view.count} distinct{" "}
+              {view.count === 1 ? "product" : "products"} in {category} — not
+              enough to compare. Everything here is shown below.
+            </PanelNote>
+          )}
+
+          {view?.status === "ok" && (
+            <div className="relative">
+              {/* Answering a question re-runs the model against the stale cards,
+                  so they dim behind the same loader rather than sitting there
+                  looking current. */}
+              {pending && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center">
+                  <LoaderOne />
+                </div>
+              )}
+              <div className={cn("transition-opacity", pending && "opacity-40")}>
+                <Carousel
+                  // Remount on a new set of picks so the entry stagger replays
+                  // and the cards don't cross-fade into each other's layoutIds.
+                  key={cards.map((card) => card.title).join("|")}
+                  items={cards.map((card, index) => (
+                    <Card key={card.title} card={card} index={index} layout />
+                  ))}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {questions.length > 0 && (
+          <aside
+            className={cn(
+              "flex flex-col",
+              // Above the cards below xl, where there's no side-by-side row to
+              // join; back to their right from xl, where the cards lead.
+              "order-first xl:order-none",
+              // flex-1 with a floor: claims whatever the shrink-wrapped
+              // carousel leaves rather than sitting at a fixed width with a
+              // gap beside it, but never drops under 17rem — past that the
+              // carousel gives up a card instead.
+              "xl:min-w-[17rem] xl:flex-1",
+            )}
+          >
             <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
               <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
               Narrow it down
             </h3>
-            {answeredCount > 0 && (
-              <button
-                type="button"
-                onClick={clearAnswers}
-                className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-dark"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted">
-            Optional — answer one and the next appears.
-          </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              Optional — answer one and the next appears.
+            </p>
 
-          <div className="mt-5">
-            {/* Answered questions collapse into this row rather than staying
-                as full question+options blocks — the row is the "summary" of
-                what's already been answered, laid out horizontally so it
-                reads as a strip of choices, not a stack of finished forms.
-                layout on the row (and each tag) lets Motion animate the
-                reflow when a tag joins or leaves, instead of the row jumping
-                straight to its new size. */}
-            {answeredQuestions.length > 0 && (
-              <motion.div layout className="flex flex-wrap items-center gap-2">
+            {/* flex-1 + justify-center: at xl this box is stretched to the
+                cards' height by the row above (no items-start override), and
+                one question at a time is a lot less content than three
+                product photos, so it's centred in that height instead of
+                pinned to the top with empty space under it. */}
+            <div className="mt-5 flex flex-1 flex-col justify-center xl:mt-8">
+              {/* Reserved at a fixed height whether or not there's anything in
+                  it yet, rather than only appearing once the first tag exists
+                  — that appearance was what pushed the question below it down
+                  the moment you answered. An empty reserved row can't do that. */}
+              <motion.div layout className="flex min-h-9 flex-wrap items-center gap-2">
                 <AnimatePresence initial={false}>
                   {answeredQuestions.map((question) => (
                     <motion.button
@@ -190,98 +260,69 @@ export function CategoryPicksPanel({
                   ))}
                 </AnimatePresence>
               </motion.div>
-            )}
 
-            {/* The one open question. mode="wait" so the outgoing question
-                finishes its fade before the next one starts fading in,
-                rather than the two cross-dissolving. */}
-            <AnimatePresence mode="wait">
-              {activeQuestion && (
-                <motion.div
-                  key={activeQuestion.id}
-                  layout
-                  role="group"
-                  aria-label={activeQuestion.text}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className={answeredQuestions.length > 0 ? "mt-4" : undefined}
+              {/* The one open question. mode="wait" so the outgoing question
+                  finishes its fade before the next one starts fading in,
+                  rather than the two cross-dissolving. */}
+              <AnimatePresence mode="wait">
+                {activeQuestion && (
+                  <motion.div
+                    key={activeQuestion.id}
+                    layout
+                    role="group"
+                    aria-label={activeQuestion.text}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-4"
+                  >
+                    {/* Bumped up well past the tags' text-xs and the old
+                        pills' 10px — one question at a time, in a rail as
+                        tall as the cards beside it, has the room to read as
+                        the main thing on screen rather than a caption. */}
+                    <p className="text-xl font-bold leading-snug text-ink">
+                      {activeQuestion.text}
+                    </p>
+                    {/* Full-width rows, not wrapped pills: with only one
+                        question visible there's no shortage of width to
+                        share between options, so each gets its own line and
+                        a proper tap target instead of a cramped chip. */}
+                    <div className="mt-6 flex flex-col gap-3">
+                      {activeQuestion.options.map((option) => (
+                        <OptionRow
+                          key={option}
+                          onClick={() => answer(activeQuestion, option)}
+                        >
+                          {option}
+                        </OptionRow>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Always rendered, just disabled until there's something to
+                  clear — an appearing/disappearing button here would be the
+                  same kind of reflow the tag row used to cause. */}
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={clearAnswers}
+                  disabled={answeredCount === 0}
+                  aria-label="Clear answers and start over"
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full border transition-colors",
+                    answeredCount > 0
+                      ? "border-border text-muted hover:border-ink hover:text-ink"
+                      : "cursor-not-allowed border-border/50 text-muted/40",
+                  )}
                 >
-                  <p className="text-sm font-bold leading-snug text-ink">
-                    {activeQuestion.text}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {activeQuestion.options.map((option) => (
-                      <OptionPill
-                        key={option}
-                        selected={false}
-                        onClick={() => answer(activeQuestion, option)}
-                      >
-                        {option}
-                      </OptionPill>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </aside>
-      )}
-
-      <div className="p-6" aria-live="polite">
-        {/* The first evaluation of a category is a live model call — a few
-            seconds, against a card row that is about to appear. The loader
-            holds roughly that space so the panel doesn't jump. */}
-        {view === null && (
-          <div className="flex h-[26rem] flex-col items-center justify-center gap-4">
-            <LoaderOne />
-            <p className="text-sm text-muted">Working out the picks…</p>
-          </div>
-        )}
-
-        {view?.status === "not_configured" && (
-          <PanelNote>
-            AI picks aren&apos;t configured on the server — this is a setup gap,
-            not a judgment about these items.
-          </PanelNote>
-        )}
-
-        {view?.status === "error" && (
-          <PanelNote>
-            Couldn&apos;t reach the AI just now. Try again in a moment.
-          </PanelNote>
-        )}
-
-        {view?.status === "too_few" && (
-          <PanelNote>
-            Only {view.count} distinct{" "}
-            {view.count === 1 ? "product" : "products"} in {category} — not
-            enough to compare. Everything here is shown below.
-          </PanelNote>
-        )}
-
-        {view?.status === "ok" && (
-          <div className="relative">
-            {/* Answering a question re-runs the model against the stale cards,
-                so they dim behind the same loader rather than sitting there
-                looking current. */}
-            {pending && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center">
-                <LoaderOne />
+                  <IconRefresh className="h-4 w-4" />
+                </button>
               </div>
-            )}
-            <div className={cn("transition-opacity", pending && "opacity-40")}>
-              <Carousel
-                // Remount on a new set of picks so the entry stagger replays
-                // and the cards don't cross-fade into each other's layoutIds.
-                key={cards.map((card) => card.title).join("|")}
-                items={cards.map((card, index) => (
-                  <Card key={card.title} card={card} index={index} layout />
-                ))}
-              />
             </div>
-          </div>
+          </aside>
         )}
       </div>
     </section>
@@ -289,16 +330,19 @@ export function CategoryPicksPanel({
 }
 
 /**
- * The ring is drawn with an inset box-shadow rather than a border so the pill
- * doesn't shift by 2px when it fills on hover or selection — a border would
- * change the box, an inset shadow paints inside it.
+ * One option, one full-width row. There's no "selected" state to show —
+ * clicking answers the question immediately and the whole block it's in
+ * unmounts, replaced by a tag — so this only needs a rest state and a hover
+ * state, unlike the old inline pill it replaces.
+ *
+ * The ring is still an inset box-shadow rather than a border, for the same
+ * reason as before: a border changes the box on hover, an inset shadow
+ * paints inside a box that never moves.
  */
-function OptionPill({
-  selected,
+function OptionRow({
   onClick,
   children,
 }: {
-  selected: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -306,13 +350,7 @@ function OptionPill({
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={selected}
-      className={cn(
-        "rounded-full bg-transparent px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition duration-200",
-        selected
-          ? "bg-brand text-white shadow-[inset_0_0_0_2px_var(--color-brand)]"
-          : "text-ink shadow-[inset_0_0_0_2px_var(--color-border)] hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]",
-      )}
+      className="w-full rounded-xl bg-transparent px-4 py-3 text-left text-sm font-bold text-ink shadow-[inset_0_0_0_2px_var(--color-border)] transition duration-200 hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]"
     >
       {children}
     </button>
