@@ -119,80 +119,17 @@ export function CategoryPicksPanel({
         </div>
       </header>
 
-      {/* Questions sit in a full-width strip above the cards rather than a
-          side rail beside them. Side-by-side, the rail was a second column
-          the eye had to reconcile against the cards — different width,
-          different height, aligned only at the top — which is what read as
-          not lining up with them however the box sizing was tuned. Stacked
-          full-width, both pieces share the section's one width and the
-          question row lays itself out horizontally within that, so there's
-          only one alignment to track: everything starts at the same left
-          edge. */}
-      <div className="flex flex-col gap-6 p-6">
-        {questions.length > 0 && (
-          <aside className="rounded-xl bg-canvas p-5">
-            <div className="flex items-baseline justify-between gap-2">
-              <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
-                <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
-                Narrow it down
-              </h3>
-              {answeredCount > 0 && (
-                <button
-                  type="button"
-                  onClick={clearAnswers}
-                  className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-dark"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted">
-              Optional — answering any of these sharpens the picks above.
-            </p>
-
-            {/* flex-wrap, not grid: a grid's column tracks are fixed for the
-                whole layout, so a trailing question left alone in the last row
-                sat in one narrow track with an empty one visibly beside it.
-                Flex just stops after the last real item instead.
-                No grow, though — that was tried and made it worse: a lone
-                last question stretched to the row's full width, so 3 short
-                pills sat against a wide empty margin, which reads worse
-                than the narrow gap it replaced, and it's especially visible
-                now that the panel spans the full section width instead of a
-                narrow rail. basis-52 (13rem) without flex-1 just wraps at a
-                fixed width, the same as the other questions on the row. */}
-            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-5">
-              {questions.map((question) => (
-                <div
-                  key={question.id}
-                  role="group"
-                  aria-label={question.text}
-                  className="w-52"
-                >
-                  {/* Bumped up from the pills' 10px and the helper text's 12px —
-                      the question is the thing being answered, and it read as
-                      just another line of fine print next to them. */}
-                  <p className="text-sm font-bold leading-snug text-ink">
-                    {question.text}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {question.options.map((option) => (
-                      <OptionPill
-                        key={option}
-                        selected={answers[question.id] === option}
-                        onClick={() => answer(question, option)}
-                      >
-                        {option}
-                      </OptionPill>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </aside>
-        )}
-
-        <div aria-live="polite">
+      {/* Cards lead on the left; the questions are a control rail to their
+          right, not a strip in front of them. Stacked below xl, where a rail
+          would squeeze the carousel to a single visible card — and there the
+          rail moves above the cards (order-first), since a control below
+          three 416px cards on a phone screen is one you never find. */}
+      <div className="flex flex-col gap-6 p-6 xl:flex-row xl:items-start">
+        {/* w-fit rather than flex-1: the carousel is a fixed 3 cards, so a
+            growing column just pads dead space onto its own right edge.
+            min-w-0 lets it shrink and scroll if the rail's floor leaves it
+            less than three cards' worth of room. */}
+        <div className="min-w-0 xl:w-fit" aria-live="polite">
           {/* The first evaluation of a category is a live model call — a few
               seconds, against a card row that is about to appear. The loader
               holds roughly that space so the panel doesn't jump. */}
@@ -247,6 +184,79 @@ export function CategoryPicksPanel({
             </div>
           )}
         </div>
+
+        {questions.length > 0 && (
+          <aside
+            className={cn(
+              "rounded-xl bg-canvas p-5",
+              // Above the cards on mobile; back to their right from md, where
+              // the cards fit on screen and should lead.
+              "order-first md:order-none",
+              // flex-1 with a floor: claims whatever the shrink-wrapped
+              // carousel leaves rather than sitting at a fixed width with a
+              // gap beside it, but never drops under 17rem — past that the
+              // carousel gives up a card instead.
+              "xl:min-w-[17rem] xl:flex-1",
+            )}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
+                <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
+                Narrow it down
+              </h3>
+              {answeredCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAnswers}
+                  className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-dark"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              Optional — answering any of these sharpens the picks above.
+            </p>
+
+            {/* flex-wrap, not grid: a grid's column tracks are fixed for the
+                whole layout, so a trailing question left alone in the last row
+                sat in one narrow track with an empty one visibly beside it.
+                Flex just stops after the last real item instead. No grow,
+                though — that was tried and made it worse: a lone last
+                question stretched to the row's full width, so 2-3 short
+                pills sat against a wide empty margin, which reads worse than
+                the narrow gap it replaced. w-52 (13rem) without flex-1 just
+                wraps at a fixed width, the same as the other questions. */}
+            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-5">
+              {questions.map((question) => (
+                <div
+                  key={question.id}
+                  role="group"
+                  aria-label={question.text}
+                  className="w-52"
+                >
+                  {/* Bumped up from the pills' 10px and the helper text's 12px —
+                      the question is the thing being answered, and it read as
+                      just another line of fine print next to them. */}
+                  <p className="text-sm font-bold leading-snug text-ink">
+                    {question.text}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {question.options.map((option) => (
+                      <OptionPill
+                        key={option}
+                        selected={answers[question.id] === option}
+                        onClick={() => answer(question, option)}
+                      >
+                        {option}
+                      </OptionPill>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+        )}
       </div>
     </section>
   );
