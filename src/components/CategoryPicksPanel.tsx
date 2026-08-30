@@ -123,7 +123,12 @@ export function CategoryPicksPanel({
           front of them. They stack below xl, where the rail would squeeze the
           carousel down to a single visible card. */}
       <div className="flex flex-col gap-6 p-6 xl:flex-row xl:items-start">
-        <div className="min-w-0 flex-1" aria-live="polite">
+        {/* w-fit rather than flex-1: the carousel is a fixed 3 cards, so a
+            growing column just padded dead space onto its right edge (~380px
+            at 1830). Shrink-wrapping here hands that slack to the rail
+            instead, and min-w-0 still lets the carousel scroll when the rail's
+            min-width leaves it less than three cards' worth. */}
+        <div className="min-w-0 xl:w-fit" aria-live="polite">
           {/* The first evaluation of a category is a live model call — a few
               seconds, against a card row that is about to appear. The loader
               holds roughly that space so the panel doesn't jump. */}
@@ -180,7 +185,24 @@ export function CategoryPicksPanel({
         </div>
 
         {questions.length > 0 && (
-          <aside className="rounded-xl bg-canvas p-5 xl:w-[17rem] xl:shrink-0">
+          <aside
+            className={cn(
+              "rounded-xl bg-canvas p-5",
+              // Above the picks on mobile, where a rail below the fold is a
+              // control you never find; back under them from md, where the
+              // cards fit on screen and should lead.
+              "order-first md:order-none",
+              // flex-1 with a floor: takes whatever the shrink-wrapped carousel
+              // leaves rather than sitting at a fixed width with a gap beside
+              // it, and never drops under 17rem — past that the carousel gives
+              // up a card instead.
+              "xl:min-w-[17rem] xl:flex-1",
+              // Questions lay out against the rail's own width, not the
+              // viewport's: this is full-bleed when stacked but narrow when
+              // docked, and a viewport breakpoint can't tell those apart.
+              "@container",
+            )}
+          >
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
                 Narrow it down
@@ -199,11 +221,10 @@ export function CategoryPicksPanel({
               Optional. Any answer sharpens the picks.
             </p>
 
-            {/* Side by side while the rail is stacked full-width under the
-                cards, one per row once it narrows into the rail at xl. A single
-                column at full width strands the pills against ~500px of empty
-                space. */}
-            <div className="mt-5 grid gap-5 sm:grid-cols-3 xl:grid-cols-1">
+            {/* Columns follow the rail's own width, so it fills whatever space
+                the carousel left it instead of stranding pills beside empty
+                space at one width and cramping them at another. */}
+            <div className="mt-5 grid gap-5 @md:grid-cols-2 @3xl:grid-cols-3">
               {questions.map((question) => (
                 <div
                   key={question.id}
@@ -211,9 +232,9 @@ export function CategoryPicksPanel({
                   aria-label={question.text}
                   // Rules between questions rather than boxes around them: the
                   // rail is already a panel, and nesting cards in cards is what
-                  // made this read as filler. Only in the narrow rail — the
-                  // grid's gap already separates the stacked columns.
-                  className="xl:border-t xl:border-border xl:pt-4 xl:first:border-t-0 xl:first:pt-0"
+                  // made this read as filler. Single column only — once the
+                  // grid splits, its gap does the separating.
+                  className="border-t border-border pt-4 first:border-t-0 first:pt-0 @md:border-t-0 @md:pt-0"
                 >
                   <p className="text-xs font-semibold leading-snug text-ink">
                     {question.text}
