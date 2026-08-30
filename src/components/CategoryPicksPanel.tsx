@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { IconAdjustmentsHorizontal, IconSparkles } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconSparkles, IconX } from "@tabler/icons-react";
+import { AnimatePresence, motion } from "motion/react";
 import { fetchCategoryPicks } from "@/app/wishlist/categoryActions";
 import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
 import { LoaderOne } from "@/components/ui/loader";
@@ -49,11 +50,13 @@ export function CategoryPicksPanel({
 
   // One question at a time: the next one only appears once the current one
   // is answered, so this reads as a short guided step rather than a form to
-  // fill out up front. Un-answering a question (tapping its chosen option
-  // again) hides everything after it again, for the same reason.
+  // fill out up front. Answered questions collapse into a row of tags above
+  // it; un-answering one (tapping its tag) drops it and everything after it
+  // back out of the row, for the same reason.
   const firstUnansweredIndex = questions.findIndex((q) => !answers[q.id]);
-  const visibleQuestions =
-    firstUnansweredIndex === -1 ? questions : questions.slice(0, firstUnansweredIndex + 1);
+  const answeredQuestions =
+    firstUnansweredIndex === -1 ? questions : questions.slice(0, firstUnansweredIndex);
+  const activeQuestion = firstUnansweredIndex === -1 ? null : questions[firstUnansweredIndex];
 
   function refetch(next: Record<string, string>) {
     const payload = questions
@@ -154,28 +157,74 @@ export function CategoryPicksPanel({
             Optional — answer one and the next appears.
           </p>
 
-          {/* One question at a time: visibleQuestions is the answered prefix
-              plus the next unanswered one, so question 2 doesn't exist on
-              screen until question 1 has a pick. */}
-          <div className="mt-5 space-y-5">
-            {visibleQuestions.map((question) => (
-              <div key={question.id} role="group" aria-label={question.text}>
-                <p className="text-sm font-bold leading-snug text-ink">
-                  {question.text}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {question.options.map((option) => (
-                    <OptionPill
-                      key={option}
-                      selected={answers[question.id] === option}
-                      onClick={() => answer(question, option)}
+          <div className="mt-5">
+            {/* Answered questions collapse into this row rather than staying
+                as full question+options blocks — the row is the "summary" of
+                what's already been answered, laid out horizontally so it
+                reads as a strip of choices, not a stack of finished forms.
+                layout on the row (and each tag) lets Motion animate the
+                reflow when a tag joins or leaves, instead of the row jumping
+                straight to its new size. */}
+            {answeredQuestions.length > 0 && (
+              <motion.div layout className="flex flex-wrap items-center gap-2">
+                <AnimatePresence initial={false}>
+                  {answeredQuestions.map((question) => (
+                    <motion.button
+                      key={question.id}
+                      layout
+                      type="button"
+                      // Slides in from the left rather than just fading, since
+                      // that's the direction a newly-collapsed question moves
+                      // in relative to the tags already ahead of it.
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -12 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 34 }}
+                      onClick={() => answer(question, answers[question.id]!)}
+                      aria-label={`${question.text}: ${answers[question.id]}. Tap to change.`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand/15"
                     >
-                      {option}
-                    </OptionPill>
+                      {answers[question.id]}
+                      <IconX className="h-3 w-3" />
+                    </motion.button>
                   ))}
-                </div>
-              </div>
-            ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+
+            {/* The one open question. mode="wait" so the outgoing question
+                finishes its fade before the next one starts fading in,
+                rather than the two cross-dissolving. */}
+            <AnimatePresence mode="wait">
+              {activeQuestion && (
+                <motion.div
+                  key={activeQuestion.id}
+                  layout
+                  role="group"
+                  aria-label={activeQuestion.text}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={answeredQuestions.length > 0 ? "mt-4" : undefined}
+                >
+                  <p className="text-sm font-bold leading-snug text-ink">
+                    {activeQuestion.text}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {activeQuestion.options.map((option) => (
+                      <OptionPill
+                        key={option}
+                        selected={false}
+                        onClick={() => answer(activeQuestion, option)}
+                      >
+                        {option}
+                      </OptionPill>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </aside>
       )}
