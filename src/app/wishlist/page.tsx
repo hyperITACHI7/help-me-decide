@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { track } from "@/lib/analytics";
+import { loadLatestShowcase } from "@/lib/showcaseSummary";
 import { WishlistGrid } from "@/components/WishlistGrid";
 
 export default async function WishlistPage() {
@@ -12,9 +13,10 @@ export default async function WishlistPage() {
     redirect("/");
   }
 
-  const rawItems = await prisma.wishlistItem.findMany({
-    where: { sessionId: session.id },
-  });
+  const [rawItems, showcase] = await Promise.all([
+    prisma.wishlistItem.findMany({ where: { sessionId: session.id } }),
+    loadLatestShowcase(session.id),
+  ]);
 
   // F2: re-sort by revealed preference (seeded + live open-count), NOT save
   // order. Tie-broken by save recency (phased_architecture.md Phase 1
@@ -33,6 +35,7 @@ export default async function WishlistPage() {
 
   return (
     <WishlistGrid
+      showcase={showcase}
       items={items.map((item) => ({
         id: item.id,
         name: item.name,

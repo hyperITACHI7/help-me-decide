@@ -6,9 +6,11 @@ import { createShowcase } from "@/app/wishlist/showcaseActions";
 import { CatalogBrowser } from "@/components/CatalogBrowser";
 import { CategoryRail } from "@/components/CategoryRail";
 import { CategoryPicksPanel } from "@/components/CategoryPicksPanel";
+import { ShowcaseWidget } from "@/components/ShowcaseWidget";
 import { WishlistDock } from "@/components/WishlistDock";
 import type { CatalogCardItem } from "@/components/CatalogProductCard";
 import { MIN_AI_ITEMS, MIN_SHOWCASE_ITEMS } from "@/lib/selectionLimits";
+import type { ShowcaseSummary } from "@/lib/showcaseSummary";
 
 type Mode = "ai" | "showcase";
 
@@ -36,8 +38,11 @@ const COPY = {
 
 export function WishlistGrid({
   items,
+  showcase,
 }: {
   items: WishlistItem[];
+  /** null when the shopper has never made one — the widget then renders nothing. */
+  showcase: ShowcaseSummary | null;
 }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -106,6 +111,11 @@ export function WishlistGrid({
               items={visibleItems}
             />
           )}
+          {/* Last, so it sits directly above the grid's title/sort row. It's a
+              wishlist-wide status card, not a category one, so it stays put
+              when a category is open rather than displacing that category's
+              AI picks. */}
+          {showcase && <ShowcaseWidget summary={showcase} />}
         </>
       }
       footer={
