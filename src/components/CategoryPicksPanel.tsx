@@ -247,11 +247,16 @@ export function CategoryPicksPanel({
               "xl:min-w-[17rem] xl:flex-1",
             )}
           >
-            <h3 className="flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
-              <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
+            {/* Was text-[11px]/text-xs — noticeably smaller than everything
+                else in this rail (the question is text-xl, the pills are
+                text-xs/text-sm and bold), so this read as barely-there next
+                to them. One step up each, kept light-weight/muted so it
+                still reads as a label, not a competing heading. */}
+            <h3 className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ink">
+              <IconAdjustmentsHorizontal className="h-4 w-4 text-muted" />
               Narrow it down
             </h3>
-            <p className="mt-1.5 text-center text-xs leading-relaxed text-muted">
+            <p className="mt-1.5 text-center text-sm leading-relaxed text-muted">
               {showSummary
                 ? "Tap any answer to change it."
                 : "Optional — answer one and the next appears."}
