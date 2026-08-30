@@ -47,6 +47,14 @@ export function CategoryPicksPanel({
   const questions: NarrowingQuestion[] =
     view && (view.status === "ok" || view.status === "too_few") ? view.questions : [];
 
+  // One question at a time: the next one only appears once the current one
+  // is answered, so this reads as a short guided step rather than a form to
+  // fill out up front. Un-answering a question (tapping its chosen option
+  // again) hides everything after it again, for the same reason.
+  const firstUnansweredIndex = questions.findIndex((q) => !answers[q.id]);
+  const visibleQuestions =
+    firstUnansweredIndex === -1 ? questions : questions.slice(0, firstUnansweredIndex + 1);
+
   function refetch(next: Record<string, string>) {
     const payload = questions
       .filter((q) => next[q.id])
@@ -119,143 +127,112 @@ export function CategoryPicksPanel({
         </div>
       </header>
 
-      {/* Cards lead on the left; the questions are a control rail to their
-          right, not a strip in front of them. Stacked below xl, where a rail
-          would squeeze the carousel to a single visible card — and there the
-          rail moves above the cards (order-first), since a control below
-          three 416px cards on a phone screen is one you never find. */}
-      <div className="flex flex-col gap-6 p-6 xl:flex-row xl:items-start">
-        {/* w-fit rather than flex-1: the carousel is a fixed 3 cards, so a
-            growing column just pads dead space onto its own right edge.
-            min-w-0 lets it shrink and scroll if the rail's floor leaves it
-            less than three cards' worth of room. */}
-        <div className="min-w-0 xl:w-fit" aria-live="polite">
-          {/* The first evaluation of a category is a live model call — a few
-              seconds, against a card row that is about to appear. The loader
-              holds roughly that space so the panel doesn't jump. */}
-          {view === null && (
-            <div className="flex h-[26rem] flex-col items-center justify-center gap-4">
-              <LoaderOne />
-              <p className="text-sm text-muted">Working out the picks…</p>
-            </div>
-          )}
-
-          {view?.status === "not_configured" && (
-            <PanelNote>
-              AI picks aren&apos;t configured on the server — this is a setup gap,
-              not a judgment about these items.
-            </PanelNote>
-          )}
-
-          {view?.status === "error" && (
-            <PanelNote>
-              Couldn&apos;t reach the AI just now. Try again in a moment.
-            </PanelNote>
-          )}
-
-          {view?.status === "too_few" && (
-            <PanelNote>
-              Only {view.count} distinct{" "}
-              {view.count === 1 ? "product" : "products"} in {category} — not
-              enough to compare. Everything here is shown below.
-            </PanelNote>
-          )}
-
-          {view?.status === "ok" && (
-            <div className="relative">
-              {/* Answering a question re-runs the model against the stale cards,
-                  so they dim behind the same loader rather than sitting there
-                  looking current. */}
-              {pending && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center">
-                  <LoaderOne />
-                </div>
-              )}
-              <div className={cn("transition-opacity", pending && "opacity-40")}>
-                <Carousel
-                  // Remount on a new set of picks so the entry stagger replays
-                  // and the cards don't cross-fade into each other's layoutIds.
-                  key={cards.map((card) => card.title).join("|")}
-                  items={cards.map((card, index) => (
-                    <Card key={card.title} card={card} index={index} layout />
-                  ))}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {questions.length > 0 && (
-          <aside
-            className={cn(
-              "rounded-xl bg-canvas p-5",
-              // Above the cards on mobile; back to their right from md, where
-              // the cards fit on screen and should lead.
-              "order-first md:order-none",
-              // flex-1 with a floor: claims whatever the shrink-wrapped
-              // carousel leaves rather than sitting at a fixed width with a
-              // gap beside it, but never drops under 17rem — past that the
-              // carousel gives up a card instead.
-              "xl:min-w-[17rem] xl:flex-1",
+      {/* Questions above the cards, not beside them — one column, so there's
+          only ever one width and one left edge to track. No fill behind them
+          either: a grey panel here read as a form to complete before you
+          could get to the cards, when it's meant to be a quick optional
+          aside on the way past. A border under it is enough to separate it
+          from the cards below. */}
+      {questions.length > 0 && (
+        <aside className="border-b border-border px-6 py-5">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
+              <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
+              Narrow it down
+            </h3>
+            {answeredCount > 0 && (
+              <button
+                type="button"
+                onClick={clearAnswers}
+                className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-dark"
+              >
+                Clear
+              </button>
             )}
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
-                <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
-                Narrow it down
-              </h3>
-              {answeredCount > 0 && (
-                <button
-                  type="button"
-                  onClick={clearAnswers}
-                  className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-dark"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted">
-              Optional — answering any of these sharpens the picks above.
-            </p>
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted">
+            Optional — answer one and the next appears.
+          </p>
 
-            {/* flex-wrap, not grid: a grid's column tracks are fixed for the
-                whole layout, so a trailing question left alone in the last row
-                sat in one narrow track with an empty one visibly beside it.
-                Flex just stops after the last real item instead. No grow,
-                though — that was tried and made it worse: a lone last
-                question stretched to the row's full width, so 2-3 short
-                pills sat against a wide empty margin, which reads worse than
-                the narrow gap it replaced. w-52 (13rem) without flex-1 just
-                wraps at a fixed width, the same as the other questions. */}
-            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-5">
-              {questions.map((question) => (
-                <div
-                  key={question.id}
-                  role="group"
-                  aria-label={question.text}
-                  className="w-52"
-                >
-                  {/* Bumped up from the pills' 10px and the helper text's 12px —
-                      the question is the thing being answered, and it read as
-                      just another line of fine print next to them. */}
-                  <p className="text-sm font-bold leading-snug text-ink">
-                    {question.text}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {question.options.map((option) => (
-                      <OptionPill
-                        key={option}
-                        selected={answers[question.id] === option}
-                        onClick={() => answer(question, option)}
-                      >
-                        {option}
-                      </OptionPill>
-                    ))}
-                  </div>
+          {/* One question at a time: visibleQuestions is the answered prefix
+              plus the next unanswered one, so question 2 doesn't exist on
+              screen until question 1 has a pick. */}
+          <div className="mt-5 space-y-5">
+            {visibleQuestions.map((question) => (
+              <div key={question.id} role="group" aria-label={question.text}>
+                <p className="text-sm font-bold leading-snug text-ink">
+                  {question.text}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {question.options.map((option) => (
+                    <OptionPill
+                      key={option}
+                      selected={answers[question.id] === option}
+                      onClick={() => answer(question, option)}
+                    >
+                      {option}
+                    </OptionPill>
+                  ))}
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+        </aside>
+      )}
+
+      <div className="p-6" aria-live="polite">
+        {/* The first evaluation of a category is a live model call — a few
+            seconds, against a card row that is about to appear. The loader
+            holds roughly that space so the panel doesn't jump. */}
+        {view === null && (
+          <div className="flex h-[26rem] flex-col items-center justify-center gap-4">
+            <LoaderOne />
+            <p className="text-sm text-muted">Working out the picks…</p>
+          </div>
+        )}
+
+        {view?.status === "not_configured" && (
+          <PanelNote>
+            AI picks aren&apos;t configured on the server — this is a setup gap,
+            not a judgment about these items.
+          </PanelNote>
+        )}
+
+        {view?.status === "error" && (
+          <PanelNote>
+            Couldn&apos;t reach the AI just now. Try again in a moment.
+          </PanelNote>
+        )}
+
+        {view?.status === "too_few" && (
+          <PanelNote>
+            Only {view.count} distinct{" "}
+            {view.count === 1 ? "product" : "products"} in {category} — not
+            enough to compare. Everything here is shown below.
+          </PanelNote>
+        )}
+
+        {view?.status === "ok" && (
+          <div className="relative">
+            {/* Answering a question re-runs the model against the stale cards,
+                so they dim behind the same loader rather than sitting there
+                looking current. */}
+            {pending && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center">
+                <LoaderOne />
+              </div>
+            )}
+            <div className={cn("transition-opacity", pending && "opacity-40")}>
+              <Carousel
+                // Remount on a new set of picks so the entry stagger replays
+                // and the cards don't cross-fade into each other's layoutIds.
+                key={cards.map((card) => card.title).join("|")}
+                items={cards.map((card, index) => (
+                  <Card key={card.title} card={card} index={index} layout />
+                ))}
+              />
             </div>
-          </aside>
+          </div>
         )}
       </div>
     </section>
