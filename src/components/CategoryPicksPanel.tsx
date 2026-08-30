@@ -150,23 +150,24 @@ export function CategoryPicksPanel({
               Optional — answering any of these sharpens the picks above.
             </p>
 
-            {/* flex-wrap over grid: a grid's column tracks are fixed for the
+            {/* flex-wrap, not grid: a grid's column tracks are fixed for the
                 whole layout, so a trailing question left alone in the last row
                 sat in one narrow track with an empty one visibly beside it.
-                Flex redistributes whatever's actually in a row — grow lets a
-                lone last question fill the full width instead. basis-52
-                (13rem) is the width three questions need before they claim a
-                row together; below that they drop to two, then one, each time
-                the row's occupants growing to fill it rather than leaving a
-                gap. The panel is full section width now, so most screens fit
-                all of them on one row regardless. */}
+                Flex just stops after the last real item instead.
+                No grow, though — that was tried and made it worse: a lone
+                last question stretched to the row's full width, so 3 short
+                pills sat against a wide empty margin, which reads worse
+                than the narrow gap it replaced, and it's especially visible
+                now that the panel spans the full section width instead of a
+                narrow rail. basis-52 (13rem) without flex-1 just wraps at a
+                fixed width, the same as the other questions on the row. */}
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-5">
               {questions.map((question) => (
                 <div
                   key={question.id}
                   role="group"
                   aria-label={question.text}
-                  className="min-w-52 flex-1 basis-52"
+                  className="w-52"
                 >
                   {/* Bumped up from the pills' 10px and the helper text's 12px —
                       the question is the thing being answered, and it read as
