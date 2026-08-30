@@ -62,7 +62,7 @@ export function CatalogBrowser({
   submitOpenItem?: boolean;
   /** Set when the caller supplies its own category control (the wishlist rail). */
   hideCategoryFilter?: boolean;
-  /** Slot rendered between the title/sort row and the product grid. */
+  /** Slot rendered above the title/sort row, before the product grid. */
   beforeGrid?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
@@ -188,17 +188,27 @@ export function CatalogBrowser({
         {/* pr mirrors the rail (60px) plus the row gap (24px) so the grid sits
             symmetrically between the two page edges. */}
         <div className="min-w-0 flex-1 md:pr-[84px]">
+          {beforeGrid}
+
           {/* Title and sort share this row — right-aligning the sort on its
-              own line left ~1160px of dead space above the grid. */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+              own line left ~1160px of dead space above the grid. It's the
+              grid's header now, not the section's, so it sits directly above
+              the grid rather than above whatever beforeGrid renders (the
+              wishlist's category rail and AI picks). mt-4 only when
+              beforeGrid is actually there to separate it from — without it,
+              this is the column's first line, flush with the sidebar. */}
+          <div
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3",
+              beforeGrid && "mt-4",
+            )}
+          >
             <h1 className="text-lg font-bold text-ink">
               {title}{" "}
               <span className="font-normal text-muted">— {filtered.length} items</span>
             </h1>
             <SortDropdown options={SORTS} value={sort} onChange={setSort} />
           </div>
-
-          {beforeGrid ? <div className="mt-4">{beforeGrid}</div> : null}
 
           {filtered.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted">
