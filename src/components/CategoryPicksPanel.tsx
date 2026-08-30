@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   IconAdjustmentsHorizontal,
+  IconChevronLeft,
+  IconChevronRight,
   IconRefresh,
   IconSparkles,
-  IconX,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { fetchCategoryPicks } from "@/app/wishlist/categoryActions";
@@ -33,6 +34,12 @@ export function CategoryPicksPanel({
 }) {
   const [view, setView] = useState<CategoryPicksView | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [activeIndex, setActiveIndex] = useState(0);
+  // True only while deliberately revisiting one answer from the finished
+  // summary via its back/forward-reachable question view. Answering it
+  // again clears this, which is what lets the summary reappear once
+  // everything's answered again.
+  const [editingFromSummary, setEditingFromSummary] = useState(false);
   const [pending, startTransition] = useTransition();
   // Set while this instance is still mounted; the caller keys this component on
   // the category, so switching categories remounts it with fresh state rather
@@ -53,15 +60,15 @@ export function CategoryPicksPanel({
   const questions: NarrowingQuestion[] =
     view && (view.status === "ok" || view.status === "too_few") ? view.questions : [];
 
-  // One question at a time: the next one only appears once the current one
-  // is answered, so this reads as a short guided step rather than a form to
-  // fill out up front. Answered questions collapse into a row of tags above
-  // it; un-answering one (tapping its tag) drops it and everything after it
-  // back out of the row, for the same reason.
-  const firstUnansweredIndex = questions.findIndex((q) => !answers[q.id]);
-  const answeredQuestions =
-    firstUnansweredIndex === -1 ? questions : questions.slice(0, firstUnansweredIndex);
-  const activeQuestion = firstUnansweredIndex === -1 ? null : questions[firstUnansweredIndex];
+  const answeredCount = Object.keys(answers).length;
+  const allAnswered = questions.length > 0 && answeredCount === questions.length;
+  // Once every question has an answer, show the summary instead of a
+  // question — unless the summary is what got you back here (you clicked
+  // one of its answers to change it), in which case stay on that question
+  // until you answer it again.
+  const showSummary = allAnswered && !editingFromSummary;
+  const safeIndex = Math.min(activeIndex, Math.max(questions.length - 1, 0));
+  const activeQuestion = questions[safeIndex] ?? null;
 
   function refetch(next: Record<string, string>) {
     const payload = questions
@@ -74,22 +81,44 @@ export function CategoryPicksPanel({
     });
   }
 
+  function goBack() {
+    setActiveIndex((i) => Math.max(0, i - 1));
+  }
+
+  function goForward() {
+    setActiveIndex((i) => Math.min(questions.length - 1, i + 1));
+  }
+
+  /** Re-opens one answered question from the summary so its pick can change. */
+  function editAnswer(index: number) {
+    setActiveIndex(index);
+    setEditingFromSummary(true);
+  }
+
   function answer(question: NarrowingQuestion, option: string) {
+    const isUnanswering = answers[question.id] === option;
     const next = { ...answers };
     // Tapping the chosen option again clears it — answering is optional, so
     // un-answering has to be possible too.
-    if (next[question.id] === option) delete next[question.id];
+    if (isUnanswering) delete next[question.id];
     else next[question.id] = option;
     setAnswers(next);
     refetch(next);
+
+    if (isUnanswering) return;
+    // Confirming an answer — as opposed to retracting one — is what advances
+    // things: move to the next unanswered question, or, if that was the
+    // last one, drop out of edit mode so the summary takes over.
+    setEditingFromSummary(false);
+    setActiveIndex((i) => Math.min(questions.length - 1, i + 1));
   }
 
   function clearAnswers() {
     setAnswers({});
+    setActiveIndex(0);
+    setEditingFromSummary(false);
     refetch({});
   }
-
-  const answeredCount = Object.keys(answers).length;
 
   const byId = new Map(items.map((item) => [item.id, item]));
 
@@ -218,93 +247,109 @@ export function CategoryPicksPanel({
               "xl:min-w-[17rem] xl:flex-1",
             )}
           >
-            <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
+            <h3 className="flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
               <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
               Narrow it down
             </h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted">
-              Optional — answer one and the next appears.
+            <p className="mt-1.5 text-center text-xs leading-relaxed text-muted">
+              {showSummary
+                ? "Tap any answer to change it."
+                : "Optional — answer one and the next appears."}
             </p>
 
             {/* flex-1 + justify-center: at xl this box is stretched to the
                 cards' height by the row above (no items-start override), and
                 one question at a time is a lot less content than three
                 product photos, so it's centred in that height instead of
-                pinned to the top with empty space under it. */}
-            <div className="mt-5 flex flex-1 flex-col justify-center xl:mt-8">
-              {/* Reserved at a fixed height whether or not there's anything in
-                  it yet, rather than only appearing once the first tag exists
-                  — that appearance was what pushed the question below it down
-                  the moment you answered. An empty reserved row can't do that. */}
-              <motion.div layout className="flex min-h-9 flex-wrap items-center gap-2">
-                <AnimatePresence initial={false}>
-                  {answeredQuestions.map((question) => (
-                    <motion.button
-                      key={question.id}
-                      layout
-                      type="button"
-                      // Slides in from the left rather than just fading, since
-                      // that's the direction a newly-collapsed question moves
-                      // in relative to the tags already ahead of it.
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -12 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 34 }}
-                      onClick={() => answer(question, answers[question.id]!)}
-                      aria-label={`${question.text}: ${answers[question.id]}. Tap to change.`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand/15"
-                    >
-                      {answers[question.id]}
-                      <IconX className="h-3 w-3" />
-                    </motion.button>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-
-              {/* The one open question. mode="wait" so the outgoing question
-                  finishes its fade before the next one starts fading in,
-                  rather than the two cross-dissolving. */}
+                pinned to the top with empty space under it. Centred on the
+                cross axis too (items-center) — the pill buttons size to
+                their own label now rather than filling the rail's width, so
+                nothing else here should hug an edge either. */}
+            <div className="mt-5 flex flex-1 flex-col items-center justify-center xl:mt-8">
+              {/* mode="wait": the outgoing question (or the summary) finishes
+                  its fade before the next thing starts fading in, rather than
+                  the two cross-dissolving. */}
               <AnimatePresence mode="wait">
-                {activeQuestion && (
+                {showSummary ? (
                   <motion.div
-                    key={activeQuestion.id}
-                    layout
-                    role="group"
-                    aria-label={activeQuestion.text}
+                    key="summary"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="mt-4"
+                    className="flex flex-col items-center gap-3"
                   >
-                    {/* Bumped up well past the tags' text-xs and the old
-                        pills' 10px — one question at a time, in a rail as
-                        tall as the cards beside it, has the room to read as
-                        the main thing on screen rather than a caption. */}
-                    <p className="text-xl font-bold leading-snug text-ink">
-                      {activeQuestion.text}
-                    </p>
-                    {/* Full-width rows, not wrapped pills: with only one
-                        question visible there's no shortage of width to
-                        share between options, so each gets its own line and
-                        a proper tap target instead of a cramped chip. */}
-                    <div className="mt-6 flex flex-col gap-3">
-                      {activeQuestion.options.map((option) => (
-                        <OptionRow
-                          key={option}
-                          onClick={() => answer(activeQuestion, option)}
-                        >
-                          {option}
-                        </OptionRow>
-                      ))}
-                    </div>
+                    {questions.map((question, index) => (
+                      <PillButton
+                        key={question.id}
+                        large
+                        selected
+                        onClick={() => editAnswer(index)}
+                        aria-label={`${question.text}: ${answers[question.id]}. Tap to change.`}
+                      >
+                        {answers[question.id]}
+                      </PillButton>
+                    ))}
                   </motion.div>
+                ) : (
+                  activeQuestion && (
+                    <motion.div
+                      key={activeQuestion.id}
+                      role="group"
+                      aria-label={activeQuestion.text}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-center"
+                    >
+                      {/* Forward/back move freely between questions — including
+                          ones already answered, to change them — rather than
+                          only ever advancing on its own. */}
+                      <div className="flex items-center gap-3">
+                        <CircleIconButton
+                          icon={IconChevronLeft}
+                          onClick={goBack}
+                          disabled={safeIndex === 0}
+                          label="Previous question"
+                        />
+                        <span className="text-[11px] font-semibold tabular-nums tracking-widest text-muted">
+                          {safeIndex + 1} / {questions.length}
+                        </span>
+                        <CircleIconButton
+                          icon={IconChevronRight}
+                          onClick={goForward}
+                          disabled={safeIndex === questions.length - 1}
+                          label="Next question"
+                        />
+                      </div>
+
+                      {/* Bumped up well past the pills' 10px — one question at
+                          a time, in a rail as tall as the cards beside it, has
+                          the room to read as the main thing on screen rather
+                          than a caption. */}
+                      <p className="mt-4 max-w-xs text-center text-xl font-bold leading-snug text-ink">
+                        {activeQuestion.text}
+                      </p>
+                      <div className="mt-6 flex flex-col items-center gap-3">
+                        {activeQuestion.options.map((option) => (
+                          <PillButton
+                            key={option}
+                            selected={answers[activeQuestion.id] === option}
+                            onClick={() => answer(activeQuestion, option)}
+                          >
+                            {option}
+                          </PillButton>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )
                 )}
               </AnimatePresence>
 
               {/* Always rendered, just disabled until there's something to
-                  clear — an appearing/disappearing button here would be the
-                  same kind of reflow the tag row used to cause. */}
+                  clear — an appearing/disappearing button here would be its
+                  own reflow bug, the same kind the old tag row caused. */}
               <div className="mt-8 flex justify-center">
                 <button
                   type="button"
@@ -330,29 +375,74 @@ export function CategoryPicksPanel({
 }
 
 /**
- * One option, one full-width row. There's no "selected" state to show —
- * clicking answers the question immediately and the whole block it's in
- * unmounts, replaced by a tag — so this only needs a rest state and a hover
- * state, unlike the old inline pill it replaces.
+ * One option (or, in the summary, one confirmed answer). Sized to its label
+ * rather than stretched to fill the rail — the ring is an inset box-shadow
+ * rather than a border for the usual reason: a border changes the box on
+ * hover/selection, an inset shadow paints inside a box that never moves.
  *
- * The ring is still an inset box-shadow rather than a border, for the same
- * reason as before: a border changes the box on hover, an inset shadow
- * paints inside a box that never moves.
+ * `selected` fills it solid — used both for the option a question already
+ * has an answer for (revisited via back/forward) and, always, for the
+ * summary's answers, since those aren't a multi-choice to pick between
+ * anymore, just a record of what was picked. `large` bumps the summary's
+ * buttons up a size from the in-progress ones, since those are meant to
+ * read as a finished answer at a glance, not one of several options.
  */
-function OptionRow({
+function PillButton({
+  selected,
+  large,
   onClick,
   children,
+  ...rest
 }: {
+  selected?: boolean;
+  large?: boolean;
   onClick: () => void;
   children: React.ReactNode;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        "rounded-full font-bold tracking-widest uppercase transition duration-200",
+        large ? "px-7 py-3.5 text-sm" : "px-6 py-3 text-xs",
+        selected
+          ? "bg-ink text-white shadow-[inset_0_0_0_2px_var(--color-ink)]"
+          : "bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-border)] hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]",
+      )}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+function CircleIconButton({
+  icon: Icon,
+  onClick,
+  disabled,
+  label,
+}: {
+  icon: typeof IconChevronLeft;
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-xl bg-transparent px-4 py-3 text-left text-sm font-bold text-ink shadow-[inset_0_0_0_2px_var(--color-border)] transition duration-200 hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]"
+      disabled={disabled}
+      aria-label={label}
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
+        disabled
+          ? "cursor-not-allowed border-border/50 text-muted/40"
+          : "border-border text-muted hover:border-ink hover:text-ink",
+      )}
     >
-      {children}
+      <Icon className="h-4 w-4" />
     </button>
   );
 }
