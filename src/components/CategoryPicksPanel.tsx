@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { IconSparkles } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconSparkles } from "@tabler/icons-react";
 import { fetchCategoryPicks } from "@/app/wishlist/categoryActions";
 import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
 import { LoaderOne } from "@/components/ui/loader";
@@ -121,11 +121,12 @@ export function CategoryPicksPanel({
 
       {/* Cards lead; the questions are a control rail beside them, not a gate in
           front of them. They stack below xl, where the rail would squeeze the
-          carousel down to a single visible card. No items-start: stretch (the
-          default) makes the rail match the cards' height instead of sitting
-          shorter and top-clipped beside them — it was 118px short of the
-          416px cards with just two questions. */}
-      <div className="flex flex-col gap-6 p-6 xl:flex-row">
+          carousel down to a single visible card.
+          items-start, not stretch: stretching the rail to the cards' height
+          matched their box but left a slab of empty canvas under 2-3 short
+          questions — the rail sizes to its own content and lines up with the
+          cards at the top instead. */}
+      <div className="flex flex-col gap-6 p-6 xl:flex-row xl:items-start">
         {/* w-fit rather than flex-1: the carousel is a fixed 3 cards, so a
             growing column just padded dead space onto its right edge (~380px
             at 1830). Shrink-wrapping here hands that slack to the rail
@@ -200,14 +201,11 @@ export function CategoryPicksPanel({
               // it, and never drops under 17rem — past that the carousel gives
               // up a card instead.
               "xl:min-w-[17rem] xl:flex-1",
-              // Questions lay out against the rail's own width, not the
-              // viewport's: this is full-bleed when stacked but narrow when
-              // docked, and a viewport breakpoint can't tell those apart.
-              "@container",
             )}
           >
             <div className="flex items-baseline justify-between gap-2">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
+              <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-ink">
+                <IconAdjustmentsHorizontal className="h-3.5 w-3.5 text-muted" />
                 Narrow it down
               </h3>
               {answeredCount > 0 && (
@@ -221,25 +219,30 @@ export function CategoryPicksPanel({
               )}
             </div>
             <p className="mt-1.5 text-xs leading-relaxed text-muted">
-              Optional. Any answer sharpens the picks.
+              Optional — answering any of these sharpens the picks above.
             </p>
 
-            {/* Columns follow the rail's own width, so it fills whatever space
-                the carousel left it instead of stranding pills beside empty
-                space at one width and cramping them at another. */}
-            <div className="mt-5 grid gap-5 @md:grid-cols-2 @3xl:grid-cols-3">
+            {/* flex-wrap over grid: a grid's column tracks are fixed for the
+                whole layout, so a trailing question left alone in the last row
+                sat in one narrow track with an empty one visibly beside it.
+                Flex redistributes whatever's actually in a row — grow lets a
+                lone last question fill the full width instead. basis-52
+                (13rem) is the width three questions need before they claim a
+                row together; below that they drop to two, then one, each time
+                the row's occupants growing to fill it rather than leaving a
+                gap. */}
+            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-5">
               {questions.map((question) => (
                 <div
                   key={question.id}
                   role="group"
                   aria-label={question.text}
-                  // Rules between questions rather than boxes around them: the
-                  // rail is already a panel, and nesting cards in cards is what
-                  // made this read as filler. Single column only — once the
-                  // grid splits, its gap does the separating.
-                  className="border-t border-border pt-4 first:border-t-0 first:pt-0 @md:border-t-0 @md:pt-0"
+                  className="min-w-52 flex-1 basis-52"
                 >
-                  <p className="text-xs font-semibold leading-snug text-ink">
+                  {/* Bumped up from the pills' 10px and the helper text's 12px —
+                      the question is the thing being answered, and it read as
+                      just another line of fine print next to them. */}
+                  <p className="text-sm font-bold leading-snug text-ink">
                     {question.text}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
