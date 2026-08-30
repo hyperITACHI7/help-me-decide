@@ -121,8 +121,11 @@ export function CategoryPicksPanel({
 
       {/* Cards lead; the questions are a control rail beside them, not a gate in
           front of them. They stack below xl, where the rail would squeeze the
-          carousel down to a single visible card. */}
-      <div className="flex flex-col gap-6 p-6 xl:flex-row xl:items-start">
+          carousel down to a single visible card. No items-start: stretch (the
+          default) makes the rail match the cards' height instead of sitting
+          shorter and top-clipped beside them — it was 118px short of the
+          416px cards with just two questions. */}
+      <div className="flex flex-col gap-6 p-6 xl:flex-row">
         {/* w-fit rather than flex-1: the carousel is a fixed 3 cards, so a
             growing column just padded dead space onto its right edge (~380px
             at 1830). Shrink-wrapping here hands that slack to the rail
