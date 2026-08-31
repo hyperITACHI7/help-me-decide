@@ -2,10 +2,17 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { track } from "@/lib/analytics";
+
+/**
+ * Order numbers are read aloud and typed back, so they avoid nanoid's default
+ * alphabet: no "-" or "_" (they read as punctuation, not part of the number),
+ * and no O/0 or I/1 to mistake for each other.
+ */
+const orderSuffix = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 8);
 
 /**
  * Put a wishlist item in the bag, or take it back out.
@@ -91,7 +98,7 @@ export async function placeOrder(): Promise<void> {
     price: item.price,
   }));
   const total = items.reduce((sum, item) => sum + item.price, 0);
-  const number = `HMD${nanoid(8).toUpperCase()}`;
+  const number = `HMD${orderSuffix()}`;
 
   await prisma.order.create({
     data: { sessionId: session.id, number, total, items },
