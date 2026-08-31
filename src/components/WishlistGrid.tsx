@@ -69,9 +69,11 @@ export function WishlistGrid({
   }
 
   function startShowcase() {
-    // A showcase spans the whole wishlist, so picking its items from inside
-    // one category's filter would quietly hide most of the candidates.
-    setActiveCategory(null);
+    // The open category is deliberately kept. Clearing it would also clear its
+    // AI picks, and those badges are how the picks are found in the grid — so
+    // resetting here would drop them at the one moment they're most useful.
+    // The footer names the current scope and offers one tap to the full list
+    // instead, and selections survive that switch since they're held by id.
     setSelectedIds(new Set());
     setSelecting(true);
   }
@@ -129,8 +131,24 @@ export function WishlistGrid({
            browsing). Only appears while actively building a showcase. */
         selecting ? (
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+            {/* Says which items are on the table, since a showcase spans the
+                whole wishlist but the grid may be filtered to one category.
+                Switching is one tap and keeps whatever is already picked. */}
             <p className="mx-auto mb-2 max-w-md text-xs font-medium text-muted">
-              Pick the items to showcase to friends
+              {activeCategory ? (
+                <>
+                  Pick the items to showcase — showing {activeCategory}.{" "}
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategory(null)}
+                    className="font-bold text-ink underline underline-offset-2"
+                  >
+                    View all {items.length}
+                  </button>
+                </>
+              ) : (
+                "Pick the items to showcase to friends"
+              )}
             </p>
             <form action={createShowcase} className="mx-auto flex max-w-md items-center gap-2">
               {Array.from(selectedIds).map((id) => (
