@@ -32,34 +32,25 @@ const NAV_ITEMS = [
  * a checkmark inside it — decided-on-what-you-love, for a decision-assist
  * tool over a wishlist — on the same brand-to-orange gradient the "HD" badge
  * it replaces already used.
+ *
+ * Lives as a real file (public/logo.svg) rather than inline JSX so it's a
+ * normal `<img src>` — reusable outside this component (a browser tab icon,
+ * a README, whatever), same as any other image asset. The gradient badge is
+ * baked into the file itself since an <img> can't layer a CSS background
+ * behind its own bitmap the way the previous span+svg pair did; rounded-xl
+ * and shadow-sm still come from Tailwind on the <img> itself.
  */
 function Brand() {
   return (
     <Link href="/" className="relative z-20 mr-4 flex shrink-0 items-center">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-orange-400 shadow-sm">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-          className="h-5 w-5"
-        >
-          <path
-            d="M12 20.5s-6.2-3.9-8.6-7.4C1.7 10.8 1.8 8.2 3.5 6.6c1.7-1.6 4.4-1.4 5.9.4L12 9.6l2.6-2.6c1.5-1.8 4.2-2 5.9-.4 1.7 1.6 1.8 4.2.1 6.5C18.2 16.6 12 20.5 12 20.5z"
-            stroke="white"
-            strokeWidth="1.4"
-            strokeLinejoin="round"
-            opacity="0.55"
-          />
-          <path
-            d="M8.4 12.2l2.5 2.5 4.8-5"
-            stroke="white"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <span className="sr-only">Help Me Decide</span>
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element -- fixed local
+          asset at a fixed display size; next/image's optimization pipeline
+          buys nothing here. */}
+      <img
+        src="/logo.svg"
+        alt="Help Me Decide"
+        className="h-9 w-9 rounded-xl shadow-sm"
+      />
     </Link>
   );
 }
