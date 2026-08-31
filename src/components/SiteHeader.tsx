@@ -23,11 +23,42 @@ const NAV_ITEMS = [
   { name: "GENZ", link: "/" },
 ];
 
+/**
+ * Original mark, not a stand-in for a real one — a shopper asked for
+ * Myntra's actual "M" glyph here, which this project won't reproduce (it's
+ * their trademark, and globals.css already draws that line: the palette is
+ * "a design language reference, not the Myntra logo/wordmark"). This is a
+ * heart outline (the wishlist icon used everywhere else in the header) with
+ * a checkmark inside it — decided-on-what-you-love, for a decision-assist
+ * tool over a wishlist — on the same brand-to-orange gradient the "HD" badge
+ * it replaces already used.
+ */
 function Brand() {
   return (
     <Link href="/" className="relative z-20 mr-4 flex shrink-0 items-center">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-orange-400 text-sm font-extrabold text-white shadow-sm">
-        HD
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-orange-400 shadow-sm">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          className="h-5 w-5"
+        >
+          <path
+            d="M12 20.5s-6.2-3.9-8.6-7.4C1.7 10.8 1.8 8.2 3.5 6.6c1.7-1.6 4.4-1.4 5.9.4L12 9.6l2.6-2.6c1.5-1.8 4.2-2 5.9-.4 1.7 1.6 1.8 4.2.1 6.5C18.2 16.6 12 20.5 12 20.5z"
+            stroke="white"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+            opacity="0.55"
+          />
+          <path
+            d="M8.4 12.2l2.5 2.5 4.8-5"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className="sr-only">Help Me Decide</span>
       </span>
     </Link>
   );
