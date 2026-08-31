@@ -77,9 +77,9 @@ export default async function ShowcaseOwnerPage({
     rank: sorted.findIndex((other) => other.likes === item.likes) + 1,
   }));
 
-  // Per-friend counts, so the page can say whether the data is complete:
-  // one friend rating 4 items and 4 friends rating 1 each both total 4
-  // reactions, and they mean very different things.
+  // A reaction is a person, not a swipe: one friend rating 4 items is one
+  // reaction, not four. The per-swipe total made a single enthusiastic
+  // friend read as a crowd.
   const votesByFriend = new Map<string, number>();
   for (const vote of link.votes) {
     votesByFriend.set(
@@ -87,12 +87,14 @@ export default async function ShowcaseOwnerPage({
       (votesByFriend.get(vote.voterFingerprint) ?? 0) + 1
     );
   }
-  const friendCount = votesByFriend.size;
-  const completedFriendCount = [...votesByFriend.values()].filter(
+  const reactionCount = votesByFriend.size;
+  // Still tracked, just not shown as its own stat — it's what lets the page
+  // say "2 of 3 rated everything", which is a caveat rather than a metric.
+  const completedCount = [...votesByFriend.values()].filter(
     (n) => n >= itemCount
   ).length;
 
-  const totalReactions = link.votes.length;
+  const totalSwipes = link.votes.length;
   const totalLikes = link.votes.filter((v) => v.liked).length;
   const lastVoteAt = link.votes.reduce<Date | null>(
     (latest, v) => (latest === null || v.createdAt > latest ? v.createdAt : latest),
@@ -109,10 +111,9 @@ export default async function ShowcaseOwnerPage({
       // the client's first render — see lib/relativeTime.
       nowMs={requestNow()}
       itemCount={itemCount}
-      friendCount={friendCount}
-      completedFriendCount={completedFriendCount}
-      totalReactions={totalReactions}
-      likedShare={totalReactions > 0 ? totalLikes / totalReactions : null}
+      reactionCount={reactionCount}
+      completedCount={completedCount}
+      likedShare={totalSwipes > 0 ? totalLikes / totalSwipes : null}
       items={items}
     />
   );

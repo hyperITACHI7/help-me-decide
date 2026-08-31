@@ -150,9 +150,16 @@ export function CategoryPicksPanel({
   return (
     <section className="mb-8 overflow-hidden rounded-2xl border border-border bg-surface">
       <header className="border-b border-border px-6 py-5">
+        {/* Scope stated out loud, mirroring the showcase card's "across every
+            category" above the rail — these are the two AI-ish surfaces on
+            this page and the only real difference between them is what they
+            look at. */}
         <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-brand">
           <IconSparkles className="h-3.5 w-3.5" />
           AI picks
+          <span className="font-semibold tracking-normal text-muted normal-case">
+            · {category} only
+          </span>
         </span>
         <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h2 className="text-xl font-bold tracking-tight text-ink">{category}</h2>

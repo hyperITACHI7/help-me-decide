@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { CatalogProductCard, type CatalogCardItem } from "@/components/CatalogProductCard";
 import { CatalogFilterSidebar } from "@/components/CatalogFilterSidebar";
@@ -158,8 +159,13 @@ export function CatalogBrowser({
 
   return (
     <div className="px-4 py-4">
+      {/* "Home" was flat text, so the wishlist had no way back to the
+          catalogue except the header logo. */}
       <p className="text-xs text-muted">
-        Home <span className="mx-1">/</span> {breadcrumb}
+        <Link href="/" className="transition-colors hover:text-ink">
+          Home
+        </Link>
+        <span className="mx-1">/</span> {breadcrumb}
       </p>
 
       <div className="mt-3 flex flex-col gap-6 md:flex-row">

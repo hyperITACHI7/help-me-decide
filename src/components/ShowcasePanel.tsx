@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  IconArrowRight,
   IconCheck,
   IconCopy,
   IconHeartFilled,
@@ -14,6 +13,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { revokeShowcase } from "@/app/wishlist/showcaseActions";
+import { BackLink } from "@/components/BackLink";
 import { ProductImage } from "@/components/ProductImage";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 import { relativeTime } from "@/lib/relativeTime";
@@ -41,9 +41,10 @@ type Props = {
   lastVoteAt: string | null;
   nowMs: number;
   itemCount: number;
-  friendCount: number;
-  completedFriendCount: number;
-  totalReactions: number;
+  /** People who reacted, not swipes cast — one friend counts once. */
+  reactionCount: number;
+  /** How many of them rated every item; a caveat, not a headline stat. */
+  completedCount: number;
   likedShare: number | null;
   /** Already ranked by likes, highest first. */
   items: ShowcaseResultItem[];
@@ -67,9 +68,8 @@ export function ShowcasePanel({
   lastVoteAt,
   nowMs,
   itemCount,
-  friendCount,
-  completedFriendCount,
-  totalReactions,
+  reactionCount,
+  completedCount,
   likedShare,
   items,
 }: Props) {
@@ -135,12 +135,7 @@ export function ShowcasePanel({
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-      <p className="text-xs text-muted">
-        <Link href="/wishlist" className="transition-colors hover:text-ink">
-          Wishlist
-        </Link>
-        <span className="mx-1.5">/</span> Showcase
-      </p>
+      <BackLink href="/wishlist" label="Back to wishlist" />
 
       {/* ── The answer, first ───────────────────────────────────────────── */}
       <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface">
@@ -167,15 +162,14 @@ export function ShowcasePanel({
           )}
           <div className="min-w-0">
             <Verdict
-              totalReactions={totalReactions}
+              reactionCount={reactionCount}
               topLikes={topLikes}
               winners={winners}
               margin={margin}
             />
             <Caveats
-              totalReactions={totalReactions}
-              friendCount={friendCount}
-              completedFriendCount={completedFriendCount}
+              reactionCount={reactionCount}
+              completedCount={completedCount}
               itemCount={itemCount}
               lastVoteAt={lastVoteAt}
               now={now}
@@ -184,10 +178,10 @@ export function ShowcasePanel({
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 border-t border-border sm:grid-cols-4">
+        <dl className="grid grid-cols-3 border-t border-border">
           <Stat label="Items" value={itemCount} />
-          <Stat label="Friends" value={friendCount} />
-          <Stat label="Reactions" value={totalReactions} />
+          {/* People, not swipes — see the page that feeds this. */}
+          <Stat label="Reactions" value={reactionCount} />
           <Stat
             label="Liked"
             value={likedShare === null ? "—" : `${Math.round(likedShare * 100)}%`}
@@ -310,23 +304,13 @@ export function ShowcasePanel({
         </ul>
       </section>
 
-      {/* ── The obvious next move ───────────────────────────────────────── */}
-      <div className="mt-8 flex flex-wrap items-center gap-3">
+      <div className="mt-8">
         <Link
           href="/wishlist"
           className="rounded-full bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-ink shadow-[inset_0_0_0_2px_var(--color-border)] transition duration-200 hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]"
         >
           Back to wishlist
         </Link>
-        {totalReactions > 0 && (
-          <Link
-            href="/wishlist/clean"
-            className="group flex items-center gap-1.5 text-xs font-semibold text-muted transition-colors hover:text-ink"
-          >
-            Clear out the ones that didn&apos;t land
-            <IconArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        )}
       </div>
 
       {/* ── Expanded card ───────────────────────────────────────────────── */}
@@ -415,7 +399,7 @@ export function ShowcasePanel({
                     </span>
                   </div>
                   <p className="mt-3 text-xs leading-relaxed text-muted">
-                    {itemVerdict(active, friendCount)}
+                    {itemVerdict(active, reactionCount)}
                   </p>
                 </div>
               </div>
@@ -428,17 +412,17 @@ export function ShowcasePanel({
 }
 
 function Verdict({
-  totalReactions,
+  reactionCount,
   topLikes,
   winners,
   margin,
 }: {
-  totalReactions: number;
+  reactionCount: number;
   topLikes: number;
   winners: ShowcaseResultItem[];
   margin: number | null;
 }) {
-  if (totalReactions === 0) {
+  if (reactionCount === 0) {
     return (
       <>
         <h1 className="text-2xl font-bold tracking-tight text-ink">
@@ -504,31 +488,29 @@ function Verdict({
  * on, whether they finished, and whether more is still coming.
  */
 function Caveats({
-  totalReactions,
-  friendCount,
-  completedFriendCount,
+  reactionCount,
+  completedCount,
   itemCount,
   lastVoteAt,
   now,
   revoked,
 }: {
-  totalReactions: number;
-  friendCount: number;
-  completedFriendCount: number;
+  reactionCount: number;
+  completedCount: number;
   itemCount: number;
   lastVoteAt: string | null;
   now: number;
   revoked: boolean;
 }) {
-  if (totalReactions === 0) return null;
+  if (reactionCount === 0) return null;
 
   const notes: string[] = [];
 
-  if (friendCount === 1) {
+  if (reactionCount === 1) {
     notes.push("Based on one friend so far");
-  } else if (completedFriendCount < friendCount) {
+  } else if (completedCount < reactionCount) {
     notes.push(
-      `${completedFriendCount} of ${friendCount} friends rated all ${itemCount}`
+      `${completedCount} of ${reactionCount} friends rated all ${itemCount}`
     );
   }
 
