@@ -72,7 +72,31 @@ function WishlistIcon({ wishlistCount, className }: { wishlistCount: number; cla
   );
 }
 
-export function SiteHeader({ wishlistCount }: { wishlistCount: number }) {
+/** Was decoration — an aria-hidden glyph beside a real link. Now it goes somewhere. */
+function BagIcon({ bagCount, className }: { bagCount: number; className?: string }) {
+  return (
+    <Link
+      href="/bag"
+      aria-label={`Bag, ${bagCount} ${bagCount === 1 ? "item" : "items"}`}
+      className={className ?? "relative flex items-center justify-center text-ink"}
+    >
+      <IconShoppingBag className="h-5 w-5" />
+      {bagCount > 0 && (
+        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+          {bagCount}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+export function SiteHeader({
+  wishlistCount,
+  bagCount,
+}: {
+  wishlistCount: number;
+  bagCount: number;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -94,7 +118,7 @@ export function SiteHeader({ wishlistCount }: { wishlistCount: number }) {
           <div className="flex items-center gap-4 text-ink">
             <IconUser className="h-5 w-5" aria-hidden />
             <WishlistIcon wishlistCount={wishlistCount} />
-            <IconShoppingBag className="h-5 w-5" aria-hidden />
+            <BagIcon bagCount={bagCount} />
           </div>
         </div>
       </NavBody>
@@ -104,6 +128,7 @@ export function SiteHeader({ wishlistCount }: { wishlistCount: number }) {
           <Brand />
           <div className="flex items-center gap-4">
             <WishlistIcon wishlistCount={wishlistCount} className="relative flex items-center justify-center text-ink" />
+            <BagIcon bagCount={bagCount} className="relative flex items-center justify-center text-ink" />
             <MobileNavToggle isOpen={mobileOpen} onClick={() => setMobileOpen((v) => !v)} />
           </div>
         </MobileNavHeader>

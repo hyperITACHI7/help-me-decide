@@ -53,6 +53,7 @@ export default async function ShowcaseOwnerPage({
       price: item.price,
       originalPrice: item.originalPrice,
       category: item.category,
+      inBag: item.bagAddedAt !== null,
       likes,
       passes: itemVotes.length - likes,
       votes: itemVotes.length,

@@ -2,6 +2,7 @@
 
 import { IconHeart } from "@tabler/icons-react";
 import { openItem } from "@/app/actions";
+import { AddToBagButton } from "@/components/AddToBagButton";
 import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
 import { reviewCountFor, formatReviewCount, discountPercent } from "@/lib/display";
 import { TIER_BADGE_LABELS } from "@/lib/tierDisplay";
@@ -35,6 +36,7 @@ export function CatalogProductCard({
   openCount,
   submitOpenItem = false,
   pickTier,
+  inBag,
 }: {
   item: CatalogCardItem;
   onAddToWishlist?: (itemId: string) => void;
@@ -46,6 +48,8 @@ export function CatalogProductCard({
   submitOpenItem?: boolean;
   /** Set when the AI picked this item for the open category. */
   pickTier?: TierName;
+  /** Omit entirely on surfaces with no bag (the public catalogue). */
+  inBag?: boolean;
 }) {
   const pct = discountPercent(item.price, item.originalPrice);
   const reviews = reviewCountFor(item.id);
@@ -141,6 +145,10 @@ export function CatalogProductCard({
   );
 
   if (selection) {
+    // No bag button here on purpose: the whole card is the select target, and
+    // a button inside a button is invalid HTML with unreliable keyboard
+    // behaviour — the same reason the wishlist button above is gated on
+    // `!selection`.
     return (
       <button
         type="button"
@@ -156,18 +164,35 @@ export function CatalogProductCard({
     );
   }
 
+  // Sits outside the tap target rather than inside it, for that same nesting
+  // reason: below, `body` is wrapped in a submit button.
+  const bag =
+    inBag === undefined ? null : (
+      <div className="px-2 pb-3">
+        <AddToBagButton itemId={item.id} inBag={inBag} source="wishlist" full />
+      </div>
+    );
+
   if (submitOpenItem) {
     return (
-      <form action={openItem}>
-        <input type="hidden" name="itemId" value={item.id} />
-        {/* The whole card is the "open this item" tap target (F2's revealed-
-            preference signal, edge_case.md EC4). */}
-        <button type="submit" className="block w-full text-left">
-          {body}
-        </button>
-      </form>
+      <div>
+        <form action={openItem}>
+          <input type="hidden" name="itemId" value={item.id} />
+          {/* The whole card is the "open this item" tap target (F2's revealed-
+              preference signal, edge_case.md EC4). */}
+          <button type="submit" className="block w-full text-left">
+            {body}
+          </button>
+        </form>
+        {bag}
+      </div>
     );
   }
 
-  return body;
+  return (
+    <div>
+      {body}
+      {bag}
+    </div>
+  );
 }

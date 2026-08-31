@@ -15,6 +15,7 @@ import type { TierName } from "@/lib/shortlist";
 export type WishlistItem = CatalogCardItem & {
   category: string;
   openCount: number;
+  inBag: boolean;
 };
 
 export function WishlistGrid({

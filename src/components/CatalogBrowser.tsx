@@ -12,7 +12,12 @@ import { TIER_ORDER } from "@/lib/tierDisplay";
 import type { TierName } from "@/lib/shortlist";
 import { cn } from "@/lib/utils";
 
-type Item = CatalogCardItem & { category: string; openCount: number };
+type Item = CatalogCardItem & {
+  category: string;
+  openCount: number;
+  /** Absent on the public catalogue, which has no bag. */
+  inBag?: boolean;
+};
 
 const DISCOUNT_TIERS = [10, 20, 30, 40, 50];
 const PRICE_STEP = 100;
@@ -281,6 +286,7 @@ export function CatalogBrowser({
                     openCount={showOpenCount ? item.openCount : undefined}
                     submitOpenItem={submitOpenItem}
                     pickTier={pickTiers?.get(item.id)}
+                    inBag={item.inBag}
                     selection={
                       selection
                         ? {

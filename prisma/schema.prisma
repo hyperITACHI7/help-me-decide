@@ -37,7 +37,32 @@ model Session {
   shortlists      Shortlist[]
   shareLinks      ShareLink[]
   categoryPicks   CategoryPicks[]
+  orders          Order[]
   analyticsEvents AnalyticsEvent[]
+}
+
+// A placed order. Deliberately a real, persisted record rather than a
+// confirmation screen rendered from throwaway state: it survives a reload and
+// stays readable at its own URL, which is the difference between demonstrating
+// the step and faking it. What it is NOT is a transaction — no payment is
+// taken and nothing ships, and the confirmation says so on the page.
+//
+// `items` is a Json snapshot rather than FK rows, the opposite of the reason
+// CategoryPicks uses Json: an order must OUTLIVE the wishlist rows it came
+// from. Deleting a wishlist item can't be allowed to rewrite what was already
+// ordered, and the price has to be the price at the time it was placed.
+model Order {
+  id        String   @id @default(cuid())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Human-readable and shown on the confirmation, unique so it can be looked
+  // up on its own.
+  number    String   @unique
+  total     Int
+  items     Json
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
 }
 
 // Cache for the wishlist's per-category AI picks, so a category is evaluated
@@ -89,6 +114,16 @@ model WishlistItem {
   tags            String[]
   seededOpenCount Int      @default(0)
   liveOpenCount   Int      @default(0)
+  // When this item was put in the bag; null means it isn't in it. A timestamp
+  // rather than a boolean so the bag can be listed most-recent-first and can
+  // say how long something has been sitting there. Nullable-timestamp also
+  // makes adding idempotent — adding twice is one row in one state, the same
+  // property TriageDecision gets from its upsert (EC9/EC10).
+  //
+  // No quantity field: these are one-off fashion items with no size or variant
+  // model behind them, so a quantity would be a control with nothing real
+  // underneath it.
+  bagAddedAt      DateTime?
   createdAt       DateTime @default(now())
 
   triageDecisions TriageDecision[]

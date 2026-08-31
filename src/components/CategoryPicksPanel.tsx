@@ -9,6 +9,7 @@ import {
   IconSparkles,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
+import { AddToBagButton } from "@/components/AddToBagButton";
 import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
 import { LoaderOne } from "@/components/ui/loader";
 import { CircleIconButton, PillButton } from "@/components/ui/pill-button";
@@ -23,6 +24,7 @@ type PanelItem = {
   brand: string;
   imageUrl: string;
   price: number;
+  inBag: boolean;
 };
 
 export function CategoryPicksPanel({
@@ -110,6 +112,18 @@ export function CategoryPicksPanel({
                   <p className="text-sm font-bold text-ink">{item.brand}</p>
                   <p className="text-base font-semibold text-ink">₹{item.price}</p>
                   <p className="text-sm leading-relaxed text-muted">{tier.reason}</p>
+                  {/* Under the reasoning, not above it: the case comes first
+                      and the action follows from it, which is the difference
+                      between an invitation and a push. Same plain button as
+                      the grid uses — a louder one here would read as the AI
+                      having decided, against N4. */}
+                  <div className="pt-1">
+                    <AddToBagButton
+                      itemId={item.id}
+                      inBag={item.inBag}
+                      source="ai_picks"
+                    />
+                  </div>
                 </div>
               ),
             },

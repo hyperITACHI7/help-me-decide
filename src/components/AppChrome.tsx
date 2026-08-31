@@ -5,9 +5,11 @@ import { SiteHeader } from "@/components/SiteHeader";
 
 export function AppChrome({
   wishlistCount,
+  bagCount,
   children,
 }: {
   wishlistCount: number;
+  bagCount: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -21,7 +23,7 @@ export function AppChrome({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <SiteHeader wishlistCount={wishlistCount} />
+      <SiteHeader wishlistCount={wishlistCount} bagCount={bagCount} />
       <main className="flex min-w-0 flex-1 flex-col">{children}</main>
     </div>
   );

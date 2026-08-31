@@ -46,6 +46,7 @@ export default async function WishlistPage() {
         rating: item.rating,
         category: item.category,
         openCount: item.seededOpenCount + item.liveOpenCount,
+        inBag: item.bagAddedAt !== null,
       }))}
     />
   );

@@ -13,6 +13,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { revokeShowcase } from "@/app/wishlist/showcaseActions";
+import { AddToBagButton } from "@/components/AddToBagButton";
 import { BackLink } from "@/components/BackLink";
 import { ProductImage } from "@/components/ProductImage";
 import { useOutsideClick } from "@/hooks/use-outside-click";
@@ -28,6 +29,7 @@ export type ShowcaseResultItem = {
   price: number;
   originalPrice: number | null;
   category: string;
+  inBag: boolean;
   likes: number;
   passes: number;
   votes: number;
@@ -408,6 +410,17 @@ export function ShowcasePanel({
                   <p className="mt-3 text-xs leading-relaxed text-muted">
                     {itemVerdict(active, reactionCount)}
                   </p>
+                  {/* After the split and the verdict, so the friends' answer
+                      is what's being acted on rather than a prompt sitting on
+                      top of it. */}
+                  <div className="mt-4">
+                    <AddToBagButton
+                      itemId={active.id}
+                      inBag={active.inBag}
+                      source="showcase"
+                      full
+                    />
+                  </div>
                 </div>
               </div>
             </motion.div>

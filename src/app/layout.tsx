@@ -22,15 +22,22 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await getSession();
-  const wishlistCount = session
-    ? await prisma.wishlistItem.count({ where: { sessionId: session.id } })
-    : 0;
+  const [wishlistCount, bagCount] = session
+    ? await Promise.all([
+        prisma.wishlistItem.count({ where: { sessionId: session.id } }),
+        prisma.wishlistItem.count({
+          where: { sessionId: session.id, bagAddedAt: { not: null } },
+        }),
+      ])
+    : [0, 0];
 
   return (
     <html lang="en" className={cn("h-full", inter.variable, "font-sans", geist.variable)}>
       <body className="min-h-full flex flex-col bg-canvas text-ink antialiased">
         {session ? (
-          <AppChrome wishlistCount={wishlistCount}>{children}</AppChrome>
+          <AppChrome wishlistCount={wishlistCount} bagCount={bagCount}>
+            {children}
+          </AppChrome>
         ) : (
           children
         )}
