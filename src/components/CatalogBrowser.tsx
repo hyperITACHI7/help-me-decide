@@ -8,6 +8,8 @@ import { CatalogFilterSidebar } from "@/components/CatalogFilterSidebar";
 import { SortDropdown } from "@/components/SortDropdown";
 import { addToWishlist } from "@/app/actions";
 import { discountPercent } from "@/lib/display";
+import { TIER_ORDER } from "@/lib/tierDisplay";
+import type { TierName } from "@/lib/shortlist";
 import { cn } from "@/lib/utils";
 
 type Item = CatalogCardItem & { category: string; openCount: number };
@@ -47,6 +49,7 @@ export function CatalogBrowser({
   showAddToWishlist = true,
   submitOpenItem = false,
   hideCategoryFilter = false,
+  pickTiers,
   beforeGrid,
   footer,
 }: {
@@ -63,6 +66,8 @@ export function CatalogBrowser({
   submitOpenItem?: boolean;
   /** Set when the caller supplies its own category control (the wishlist rail). */
   hideCategoryFilter?: boolean;
+  /** The AI's picks for the open category, keyed by item id. */
+  pickTiers?: Map<string, TierName>;
   /** Slot rendered above the title/sort row, before the product grid. */
   beforeGrid?: React.ReactNode;
   footer?: React.ReactNode;
@@ -121,6 +126,18 @@ export function CatalogBrowser({
     });
 
     result = [...result];
+    // "Recommended" is the only sort the picks lead, and only when a category
+    // is open so there are picks at all. Everywhere else the shopper asked for
+    // an explicit order (price, rating, discount) and the AI shouldn't be
+    // quietly overriding it. Array.sort is stable, so everything unpicked
+    // keeps the order it arrived in rather than being reshuffled.
+    if (sort === "recommended" && pickTiers && pickTiers.size > 0) {
+      const rank = (id: string) => {
+        const tier = pickTiers.get(id);
+        return tier === undefined ? Number.MAX_SAFE_INTEGER : TIER_ORDER[tier];
+      };
+      result.sort((a, b) => rank(a.id) - rank(b.id));
+    }
     if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
     else if (sort === "rating-desc") result.sort((a, b) => b.rating - a.rating);
@@ -134,7 +151,7 @@ export function CatalogBrowser({
       );
     }
     return result;
-  }, [items, categories, brands, priceRange, priceBounds, discountTier, sort]);
+  }, [items, categories, brands, priceRange, priceBounds, discountTier, sort, pickTiers]);
 
   const anyFilterActive =
     categories.size > 0 || brands.size > 0 || priceNarrowed || discountTier !== null;
@@ -263,6 +280,7 @@ export function CatalogBrowser({
                     onAddToWishlist={showAddToWishlist ? addToWishlist : undefined}
                     openCount={showOpenCount ? item.openCount : undefined}
                     submitOpenItem={submitOpenItem}
+                    pickTier={pickTiers?.get(item.id)}
                     selection={
                       selection
                         ? {

@@ -4,6 +4,8 @@ import { IconHeart } from "@tabler/icons-react";
 import { openItem } from "@/app/actions";
 import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
 import { reviewCountFor, formatReviewCount, discountPercent } from "@/lib/display";
+import { TIER_BADGE_LABELS } from "@/lib/tierDisplay";
+import type { TierName } from "@/lib/shortlist";
 import { cn } from "@/lib/utils";
 
 export type CatalogCardItem = {
@@ -32,6 +34,7 @@ export function CatalogProductCard({
   selection,
   openCount,
   submitOpenItem = false,
+  pickTier,
 }: {
   item: CatalogCardItem;
   onAddToWishlist?: (itemId: string) => void;
@@ -41,6 +44,8 @@ export function CatalogProductCard({
   openCount?: number;
   /** Makes the whole card the "open this item" tap target that feeds F2. */
   submitOpenItem?: boolean;
+  /** Set when the AI picked this item for the open category. */
+  pickTier?: TierName;
 }) {
   const pct = discountPercent(item.price, item.originalPrice);
   const reviews = reviewCountFor(item.id);
@@ -64,6 +69,22 @@ export function CatalogProductCard({
               <path d="M10 1.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z" />
             </svg>
             <span className="font-normal text-muted">| {formatReviewCount(reviews)}</span>
+          </span>
+        )}
+
+        {/* Which of the three the AI picked, on the item itself — the panel
+            above says it in prose, but the picks were unfindable down here
+            among sixty other cards. Sits top-right, except in selection mode
+            where the checkmark owns that corner and this shifts left rather
+            than stacking on top of it. */}
+        {pickTier && (
+          <span
+            className={cn(
+              "pointer-events-none absolute top-2 z-40 max-w-[calc(100%-1rem)] truncate rounded-sm bg-brand px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm",
+              selection ? "left-2" : "right-2",
+            )}
+          >
+            {TIER_BADGE_LABELS[pickTier]}
           </span>
         )}
 

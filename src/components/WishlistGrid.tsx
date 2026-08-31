@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createShowcase } from "@/app/wishlist/showcaseActions";
 import { CatalogBrowser } from "@/components/CatalogBrowser";
 import { CategoryRail } from "@/components/CategoryRail";
 import { CategoryPicksPanel } from "@/components/CategoryPicksPanel";
 import { ShowcaseWidget } from "@/components/ShowcaseWidget";
 import type { CatalogCardItem } from "@/components/CatalogProductCard";
+import { useCategoryPicks } from "@/hooks/useCategoryPicks";
 import { MIN_SHOWCASE_ITEMS } from "@/lib/selectionLimits";
 import type { ShowcaseSummary } from "@/lib/showcaseSummary";
+import type { TierName } from "@/lib/shortlist";
 
 export type WishlistItem = CatalogCardItem & {
   category: string;
@@ -23,8 +25,10 @@ export function WishlistGrid({
   /** null when the shopper has never made one — the widget then invites them to. */
   showcase: ShowcaseSummary | null;
 }) {
-  // Selection mode exists only for building a showcase now. The AI picks run
-  // per category on their own, so there's nothing else to hand-pick a set for.
+  // Selection mode exists only for building a showcase. The AI's picks are
+  // reachable from it without being selectable in the carousel: they carry a
+  // tier badge in the grid below and lead it under "Recommended", so picking
+  // "the one the AI liked" is a tap on an ordinary grid tile.
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // null = "View all": the default view runs no AI at all, so a Ready Buyer
@@ -40,6 +44,20 @@ export function WishlistGrid({
   const visibleItems = activeCategory
     ? items.filter((i) => i.category === activeCategory)
     : items;
+
+  // Fetched once here rather than inside the picks panel, because the grid
+  // needs the same three items: they carry a tier badge and lead the grid
+  // under "Recommended". Without that the picks were only ever visible in the
+  // carousel — which is exactly why they couldn't be picked for a showcase.
+  const picks = useCategoryPicks(activeCategory);
+
+  const pickTiers = useMemo(() => {
+    const tiers = new Map<string, TierName>();
+    if (picks.view?.status === "ok") {
+      for (const tier of picks.view.tiers) tiers.set(tier.itemId, tier.tier);
+    }
+    return tiers;
+  }, [picks.view]);
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -79,6 +97,7 @@ export function WishlistGrid({
       // The rail is the category control here, so the sidebar's own Category
       // facet would be a second, conflicting one.
       hideCategoryFilter
+      pickTiers={pickTiers}
       beforeGrid={
         <>
           {/* Above the rail because it spans every category — the AI picks
@@ -99,6 +118,7 @@ export function WishlistGrid({
               key={activeCategory}
               category={activeCategory}
               items={visibleItems}
+              picks={picks}
             />
           )}
         </>

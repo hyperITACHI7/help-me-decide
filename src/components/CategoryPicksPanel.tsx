@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState } from "react";
 import {
   IconAdjustmentsHorizontal,
   IconChevronLeft,
@@ -9,12 +9,11 @@ import {
   IconSparkles,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
-import { fetchCategoryPicks } from "@/app/wishlist/categoryActions";
 import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
 import { LoaderOne } from "@/components/ui/loader";
 import { CircleIconButton, PillButton } from "@/components/ui/pill-button";
 import { TIER_LABELS } from "@/lib/tierDisplay";
-import type { CategoryPicksView } from "@/lib/categoryPicks";
+import type { CategoryPicksState } from "@/hooks/useCategoryPicks";
 import type { NarrowingQuestion } from "@/lib/shortlist";
 import { cn } from "@/lib/utils";
 
@@ -29,34 +28,20 @@ type PanelItem = {
 export function CategoryPicksPanel({
   category,
   items,
+  picks,
 }: {
   category: string;
   items: PanelItem[];
+  /** Owned by the wishlist — the grid below badges the same picks. */
+  picks: CategoryPicksState;
 }) {
-  const [view, setView] = useState<CategoryPicksView | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const { view, answers, pending } = picks;
   const [activeIndex, setActiveIndex] = useState(0);
   // True only while deliberately revisiting one answer from the finished
   // summary via its back/forward-reachable question view. Answering it
   // again clears this, which is what lets the summary reappear once
   // everything's answered again.
   const [editingFromSummary, setEditingFromSummary] = useState(false);
-  const [pending, startTransition] = useTransition();
-  // Set while this instance is still mounted; the caller keys this component on
-  // the category, so switching categories remounts it with fresh state rather
-  // than needing a reset here — and a slow reply from the old category lands on
-  // an unmounted instance, which this flag drops.
-  const live = useRef(true);
-
-  useEffect(() => {
-    live.current = true;
-    void fetchCategoryPicks(category).then((result) => {
-      if (live.current) setView(result);
-    });
-    return () => {
-      live.current = false;
-    };
-  }, [category]);
 
   const questions: NarrowingQuestion[] =
     view && (view.status === "ok" || view.status === "too_few") ? view.questions : [];
@@ -70,17 +55,6 @@ export function CategoryPicksPanel({
   const showSummary = allAnswered && !editingFromSummary;
   const safeIndex = Math.min(activeIndex, Math.max(questions.length - 1, 0));
   const activeQuestion = questions[safeIndex] ?? null;
-
-  function refetch(next: Record<string, string>) {
-    const payload = questions
-      .filter((q) => next[q.id])
-      .map((q) => ({ question: q.text, answer: next[q.id]! }));
-
-    startTransition(async () => {
-      const result = await fetchCategoryPicks(category, payload);
-      if (live.current) setView(result);
-    });
-  }
 
   function goBack() {
     setActiveIndex((i) => Math.max(0, i - 1));
@@ -98,13 +72,10 @@ export function CategoryPicksPanel({
 
   function answer(question: NarrowingQuestion, option: string) {
     const isUnanswering = answers[question.id] === option;
-    const next = { ...answers };
-    // Tapping the chosen option again clears it — answering is optional, so
-    // un-answering has to be possible too.
-    if (isUnanswering) delete next[question.id];
-    else next[question.id] = option;
-    setAnswers(next);
-    refetch(next);
+    // The answer set and the re-evaluation it triggers belong to the wishlist
+    // now, since the grid badges the same picks; only the stepper's own
+    // position is still this component's business.
+    picks.answer(question, option);
 
     if (isUnanswering) return;
     // Confirming an answer — as opposed to retracting one — is what advances
@@ -115,10 +86,9 @@ export function CategoryPicksPanel({
   }
 
   function clearAnswers() {
-    setAnswers({});
+    picks.clearAnswers();
     setActiveIndex(0);
     setEditingFromSummary(false);
-    refetch({});
   }
 
   const byId = new Map(items.map((item) => [item.id, item]));
