@@ -60,21 +60,29 @@ export default async function ShowcaseOwnerPage({
   });
 
   // Ranked, because "which one won?" is the question this page exists to
-  // answer and position order can't answer it. Ties broken by how many
-  // people weighed in, then by name so the order never depends on the
-  // array's incoming shape.
+  // answer and position order can't answer it. Primary sort is likes, then
+  // votes — 3-of-3 outranks 3-of-5 at the same like count, since it's
+  // stronger evidence. Anything still level after that keeps the order it
+  // was added to the showcase: `tallied` comes from `link.items`, already
+  // `position asc`, and `Array.sort` is stable, so ties fall back to that
+  // order rather than to something invented (like alphabetical) that would
+  // read as a claim about which item is "better".
   const sorted = [...tallied].sort(
-    (a, b) => b.likes - a.likes || b.votes - a.votes || a.name.localeCompare(b.name)
+    (a, b) => b.likes - a.likes || b.votes - a.votes
   );
 
-  // Standard competition ranking (1, 2, 2, 4) — a genuine tie has to read as
-  // a tie rather than being silently broken into an order. Since `sorted` is
-  // ordered by likes, an item's rank is just where its like-count first
-  // appears; deriving it that way avoids carrying mutable rank state through
-  // the map.
-  const items = sorted.map((item) => ({
+  // The list is numbered densely (1, 2, 3, 4…) rather than with standard
+  // competition ranking (1, 1, 1, 7) — six items sharing "1" and then
+  // jumping to "7" reads as broken, not as a tie. `tieRank`/`tieSize` keep
+  // the competition-style numbers alongside it, so anything that states a
+  // position in words (the expanded card's "Nth place") can say "tied for
+  // 1st" instead of a false "2nd place" for an item that didn't actually
+  // lose to #1.
+  const items = sorted.map((item, index) => ({
     ...item,
-    rank: sorted.findIndex((other) => other.likes === item.likes) + 1,
+    rank: index + 1,
+    tieRank: sorted.findIndex((other) => other.likes === item.likes) + 1,
+    tieSize: sorted.filter((other) => other.likes === item.likes).length,
   }));
 
   // A reaction is a person, not a swipe: one friend rating 4 items is one

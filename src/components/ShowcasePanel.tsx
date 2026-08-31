@@ -31,7 +31,12 @@ export type ShowcaseResultItem = {
   likes: number;
   passes: number;
   votes: number;
+  /** Dense position in the list — 1, 2, 3, 4… never skips. */
   rank: number;
+  /** Competition-style anchor — shared by everything tied with this item. */
+  tieRank: number;
+  /** How many items share that anchor; >1 means this one's in a tie. */
+  tieSize: number;
 };
 
 type Props = {
@@ -352,7 +357,9 @@ export function ShowcasePanel({
                   <IconX className="h-4 w-4" />
                 </button>
                 <span className="absolute left-3 top-3 rounded-full bg-ink/85 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur">
-                  {ordinal(active.rank)} place
+                  {active.tieSize > 1
+                    ? `Tied for ${ordinal(active.tieRank)}`
+                    : `${ordinal(active.tieRank)} place`}
                 </span>
               </div>
 

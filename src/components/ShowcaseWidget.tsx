@@ -69,11 +69,14 @@ export function ShowcaseWidget({
       </header>
 
       {summary ? (
-        <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-center">
+        <div className="flex flex-col gap-8 p-6 lg:flex-row lg:items-center">
           {summary.top.length > 0 && (
             <TopItems top={summary.top} />
           )}
-          <dl className="grid flex-1 grid-cols-3 gap-x-4 gap-y-5">
+          {/* Fixed, modest gaps rather than grid columns stretched across
+              whatever space happens to be left on a wide card — that's what
+              was throwing Items/Reactions/Liked far apart from each other. */}
+          <dl className="flex flex-wrap items-center gap-x-8 gap-y-5 lg:ml-auto lg:gap-x-12">
             <Stat label="Items" value={summary.itemCount} />
             {/* One friend rating six items counts once, not six times. */}
             <Stat label="Reactions" value={summary.reactionCount} />
@@ -115,7 +118,7 @@ function TopItems({ top }: { top: ShowcaseTopItem[] }) {
   const tied = top.length > 1;
 
   return (
-    <div className="flex min-w-0 items-center gap-4 lg:w-72 lg:shrink-0">
+    <div className="flex min-w-0 items-center gap-5 lg:w-96 lg:shrink-0">
       <div className="flex shrink-0 -space-x-4">
         {top.slice(0, 3).map((item) => (
           <div
