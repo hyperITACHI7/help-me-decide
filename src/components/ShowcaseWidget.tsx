@@ -45,23 +45,26 @@ export function ShowcaseWidget({
               Closed
             </span>
           )}
-          {summary ? (
+          {/* Starting a new one has to stay available after the first, not
+              just before it — this card is the only entry point now that the
+              dock is gone, so offering only "View reactions" here would
+              strand anyone who'd already made one. */}
+          {summary && (
             <Link
               href={`/wishlist/showcase/${summary.token}`}
               className="rounded-full bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-ink shadow-[inset_0_0_0_2px_var(--color-border)] transition duration-200 hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]"
             >
               View reactions
             </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={onStart}
-              disabled={!canStart}
-              className="rounded-full bg-ink px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Start a showcase
-            </button>
           )}
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={!canStart}
+            className="rounded-full bg-ink px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {summary ? "New showcase" : "Start a showcase"}
+          </button>
         </div>
       </header>
 
