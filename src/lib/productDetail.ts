@@ -192,42 +192,69 @@ export function deliveryDays(id: string): number {
 
 // ── Perks ───────────────────────────────────────────────────────────────────
 
-export type Perk = { title: string; detail: string };
+/**
+ * `icon` is a key, not a component, so this stays a plain data module — the
+ * key is resolved to an actual glyph in ProductPerks. Every perk gets its own:
+ * three identical checkmarks say only "three good things" and leave the reader
+ * to parse the text to find out what kind, which is what an icon is for.
+ */
+export type PerkIconKey =
+  | "feather"
+  | "wind"
+  | "snowflake"
+  | "flame"
+  | "sun"
+  | "run"
+  | "mountain"
+  | "barbell"
+  | "briefcase"
+  | "hanger"
+  | "award"
+  | "trending"
+  | "ruler"
+  | "maximize"
+  | "building"
+  | "umbrella"
+  | "shoe"
+  | "shield"
+  | "return";
+
+export type Perk = { title: string; detail: string; icon: PerkIconKey };
 
 /**
  * Read off the item's own `tags`, so the perks describe the actual product
  * rather than being three interchangeable sentences bolted onto every page.
  */
 const TAG_PERKS: Record<string, Perk> = {
-  cotton: { title: "Pure cotton", detail: "Breathable enough for all-day wear" },
-  linen: { title: "Linen blend", detail: "Stays cool through the afternoon" },
-  fleece: { title: "Fleece lined", detail: "Traps warmth without the bulk" },
-  quilted: { title: "Quilted shell", detail: "Insulated for a real winter" },
-  mesh: { title: "Breathable mesh", detail: "Vents heat while you move" },
-  canvas: { title: "Canvas upper", detail: "Softens as you break it in" },
-  denim: { title: "Rigid denim", detail: "Holds its shape wash after wash" },
-  winter: { title: "Built for winter", detail: "Rated for cold mornings" },
-  summer: { title: "Summer weight", detail: "Light enough for humid days" },
-  running: { title: "Running-ready", detail: "Cushioned for daily distance" },
-  trail: { title: "Trail grip", detail: "Lugged sole for loose ground" },
-  sports: { title: "Made to move", detail: "Holds up to real training" },
-  formal: { title: "Office-ready", detail: "Structured enough to dress up" },
-  casual: { title: "Everyday cut", detail: "Works with what you already own" },
-  premium: { title: "Premium build", detail: "Finished to last past a season" },
-  trending: { title: "Trending now", detail: "Moving fast in this category" },
-  "slim-fit": { title: "Slim fit", detail: "Tapered without being tight" },
-  oversized: { title: "Oversized cut", detail: "Deliberately roomy — size as-is" },
-  streetwear: { title: "Street-ready", detail: "Made to be seen out" },
-  lightweight: { title: "Packs light", detail: "Folds down into a bag" },
-  "rain-resistant": { title: "Rain-resistant", detail: "Shrugs off a light shower" },
-  outdoor: { title: "Outdoor-rated", detail: "Built for weather and distance" },
+  cotton: { title: "Pure cotton", detail: "Breathable enough for all-day wear", icon: "feather" },
+  linen: { title: "Linen blend", detail: "Stays cool through the afternoon", icon: "wind" },
+  fleece: { title: "Fleece lined", detail: "Traps warmth without the bulk", icon: "flame" },
+  quilted: { title: "Quilted shell", detail: "Insulated for a real winter", icon: "snowflake" },
+  mesh: { title: "Breathable mesh", detail: "Vents heat while you move", icon: "wind" },
+  canvas: { title: "Canvas upper", detail: "Softens as you break it in", icon: "shoe" },
+  denim: { title: "Rigid denim", detail: "Holds its shape wash after wash", icon: "hanger" },
+  winter: { title: "Built for winter", detail: "Rated for cold mornings", icon: "snowflake" },
+  summer: { title: "Summer weight", detail: "Light enough for humid days", icon: "sun" },
+  running: { title: "Running-ready", detail: "Cushioned for daily distance", icon: "run" },
+  trail: { title: "Trail grip", detail: "Lugged sole for loose ground", icon: "mountain" },
+  sports: { title: "Made to move", detail: "Holds up to real training", icon: "barbell" },
+  formal: { title: "Office-ready", detail: "Structured enough to dress up", icon: "briefcase" },
+  casual: { title: "Everyday cut", detail: "Works with what you already own", icon: "hanger" },
+  premium: { title: "Premium build", detail: "Finished to last past a season", icon: "award" },
+  trending: { title: "Trending now", detail: "Moving fast in this category", icon: "trending" },
+  "slim-fit": { title: "Slim fit", detail: "Tapered without being tight", icon: "ruler" },
+  oversized: { title: "Oversized cut", detail: "Deliberately roomy — size as-is", icon: "maximize" },
+  streetwear: { title: "Street-ready", detail: "Made to be seen out", icon: "building" },
+  lightweight: { title: "Packs light", detail: "Folds down into a bag", icon: "feather" },
+  "rain-resistant": { title: "Rain-resistant", detail: "Shrugs off a light shower", icon: "umbrella" },
+  outdoor: { title: "Outdoor-rated", detail: "Built for weather and distance", icon: "mountain" },
 };
 
 /** Used when an item's tags don't yield three — never leaves the page short. */
 const FALLBACK_PERKS: Perk[] = [
-  { title: "Quality checked", detail: "Inspected before it ships" },
-  { title: "True to size", detail: "Fits as the size chart says" },
-  { title: "Easy returns", detail: "14 days, no questions asked" },
+  { title: "Quality checked", detail: "Inspected before it ships", icon: "shield" },
+  { title: "True to size", detail: "Fits as the size chart says", icon: "ruler" },
+  { title: "Easy returns", detail: "14 days, no questions asked", icon: "return" },
 ];
 
 export function perksFor(tags: string[]): Perk[] {

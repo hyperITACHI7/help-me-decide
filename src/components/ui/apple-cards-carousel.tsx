@@ -225,7 +225,11 @@ export const Card = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 h-full w-full bg-black/80 backdrop-blur-lg"
+              // Upstream's near-opaque bg-black/80 blacked the page out
+              // entirely. Matched to RouteModal so every overlay in the app
+              // (item, showcase, AI picks) dims and blurs the same amount and
+              // the page underneath stays legible.
+              className="fixed inset-0 h-full w-full bg-ink/40 backdrop-blur-md"
             />
             <motion.div
               initial={{ opacity: 0 }}

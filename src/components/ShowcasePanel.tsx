@@ -55,6 +55,12 @@ type Props = {
   likedShare: number | null;
   /** Already ranked by likes, highest first. */
   items: ShowcaseResultItem[];
+  /**
+   * Rendered inside a RouteModal rather than as its own page: drops the outer
+   * <main> and both "back to wishlist" affordances, since the overlay has its
+   * own close and the wishlist is still right there behind it.
+   */
+  inModal?: boolean;
 };
 
 /**
@@ -79,6 +85,7 @@ export function ShowcasePanel({
   completedCount,
   likedShare,
   items,
+  inModal = false,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -140,9 +147,11 @@ export function ShowcasePanel({
   const margin = runnerUp ? topLikes - runnerUp.likes : null;
   const hero = winners.length === 1 ? winners[0]! : null;
 
+  const Shell = inModal ? "div" : "main";
+
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-      <BackLink href="/wishlist" label="Back to wishlist" />
+    <Shell className={inModal ? "w-full" : "mx-auto w-full max-w-3xl flex-1 px-4 py-8"}>
+      {!inModal && <BackLink href="/wishlist" label="Back to wishlist" />}
 
       {/* ── The answer, first ───────────────────────────────────────────── */}
       <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface">
@@ -311,14 +320,16 @@ export function ShowcasePanel({
         </ul>
       </section>
 
-      <div className="mt-8">
-        <Link
-          href="/wishlist"
-          className="rounded-full bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-ink shadow-[inset_0_0_0_2px_var(--color-border)] transition duration-200 hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]"
-        >
-          Back to wishlist
-        </Link>
-      </div>
+      {!inModal && (
+        <div className="mt-8">
+          <Link
+            href="/wishlist"
+            className="rounded-full bg-transparent px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-ink shadow-[inset_0_0_0_2px_var(--color-border)] transition duration-200 hover:bg-ink hover:text-white hover:shadow-[inset_0_0_0_2px_var(--color-ink)]"
+          >
+            Back to wishlist
+          </Link>
+        </div>
+      )}
 
       {/* ── Expanded card ───────────────────────────────────────────────── */}
       <AnimatePresence>
@@ -327,7 +338,7 @@ export function ShowcasePanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 h-full w-full bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-40 h-full w-full bg-ink/40 backdrop-blur-md"
           />
         )}
       </AnimatePresence>
@@ -427,7 +438,7 @@ export function ShowcasePanel({
           </div>
         )}
       </AnimatePresence>
-    </main>
+    </Shell>
   );
 }
 

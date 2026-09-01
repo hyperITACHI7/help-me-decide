@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "A progressive decision-assist flow for a Myntra-style wishlist. Prototype for a NextLeap PM Fellowship graduation project — not affiliated with Myntra.",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children, modal }: LayoutProps<"/">) {
   const session = await getSession();
   const [wishlistCount, bagCount] = session
     ? await Promise.all([
@@ -41,6 +41,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         ) : (
           children
         )}
+        {/* Parallel slot for intercepted routes (src/app/@modal). Renders
+            null on every normal page; an overlay sits here when a product is
+            opened by click from inside the app. Outside AppChrome so the blur
+            covers the header too. */}
+        {modal}
       </body>
     </html>
   );
