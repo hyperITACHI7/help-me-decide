@@ -164,18 +164,40 @@ export function CatalogProductCard({
     );
   }
 
-  // Sits outside the tap target rather than inside it, for that same nesting
-  // reason: below, `body` is wrapped in a submit button.
-  const bag =
+  // Reveals on hover over the bottom of the image, the same move the
+  // catalogue's "Add to Wishlist" makes — and the same one Myntra makes.
+  //
+  // Two things force it to be an overlay positioned from the card root rather
+  // than a child of the image like that button is. It has to sit above the
+  // grid's hover surface, which is absolute z-10 and otherwise paints straight
+  // over anything that isn't stacked (that's what made this button vanish on
+  // hover). And below, `body` is wrapped in a submit button, so nesting a
+  // second button inside it would be invalid HTML — as a sibling it also can't
+  // accidentally submit the open-item form.
+  //
+  // The box mirrors the image's own aspect-[3/4], so "bottom" here means the
+  // bottom of the photo rather than the bottom of the card. translate-y-full
+  // parks it outside that box, where overflow-hidden clips it away entirely —
+  // invisible and unclickable until hovered, without needing a
+  // pointer-events dance.
+  const bagOverlay =
     inBag === undefined ? null : (
-      <div className="px-2 pb-3">
-        <AddToBagButton itemId={item.id} inBag={inBag} source="wishlist" full />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 aspect-[3/4] overflow-hidden rounded-t-sm">
+        <div className="absolute inset-x-0 bottom-0 translate-y-full p-2 opacity-0 transition-all duration-200 group-hover/card:translate-y-0 group-hover/card:opacity-100">
+          <AddToBagButton
+            itemId={item.id}
+            inBag={inBag}
+            source="wishlist"
+            full
+            className="pointer-events-auto rounded-sm py-2 shadow-sm"
+          />
+        </div>
       </div>
     );
 
   if (submitOpenItem) {
     return (
-      <div>
+      <div className="group/card relative">
         <form action={openItem}>
           <input type="hidden" name="itemId" value={item.id} />
           {/* The whole card is the "open this item" tap target (F2's revealed-
@@ -184,15 +206,15 @@ export function CatalogProductCard({
             {body}
           </button>
         </form>
-        {bag}
+        {bagOverlay}
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="group/card relative">
       {body}
-      {bag}
+      {bagOverlay}
     </div>
   );
 }
