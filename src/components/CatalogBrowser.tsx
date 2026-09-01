@@ -50,7 +50,6 @@ export function CatalogBrowser({
   title = "All items",
   breadcrumb = "All items",
   selection,
-  showOpenCount = false,
   showAddToWishlist = true,
   linkToItem = false,
   hideCategoryFilter = false,
@@ -66,7 +65,6 @@ export function CatalogBrowser({
     selectedIds: Set<string>;
     onToggle: (id: string) => void;
   };
-  showOpenCount?: boolean;
   showAddToWishlist?: boolean;
   linkToItem?: boolean;
   /** Set when the caller supplies its own category control (the wishlist rail). */
@@ -283,7 +281,6 @@ export function CatalogBrowser({
                   <CatalogProductCard
                     item={item}
                     onAddToWishlist={showAddToWishlist ? addToWishlist : undefined}
-                    openCount={showOpenCount ? item.openCount : undefined}
                     linkToItem={linkToItem}
                     pickTier={pickTiers?.get(item.id)}
                     inBag={item.inBag}

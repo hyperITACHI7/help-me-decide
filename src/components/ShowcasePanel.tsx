@@ -16,6 +16,7 @@ import { revokeShowcase } from "@/app/wishlist/showcaseActions";
 import { AddToBagButton } from "@/components/AddToBagButton";
 import { BackLink } from "@/components/BackLink";
 import { ProductImage } from "@/components/ProductImage";
+import { ProductTrustLine } from "@/components/ProductTrustLine";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 import { relativeTime } from "@/lib/relativeTime";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ export type ShowcaseResultItem = {
   imageUrl: string;
   price: number;
   originalPrice: number | null;
+  rating: number;
   category: string;
   inBag: boolean;
   likes: number;
@@ -389,6 +391,13 @@ export function ShowcasePanel({
                 >
                   {active.name}
                 </motion.p>
+
+                <ProductTrustLine
+                  itemId={active.id}
+                  name={active.name}
+                  rating={active.rating}
+                  className="mt-2"
+                />
 
                 <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="text-lg font-bold text-ink">₹{active.price}</span>

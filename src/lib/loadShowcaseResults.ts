@@ -49,6 +49,7 @@ export async function loadShowcaseResults(
       imageUrl: item.imageUrl,
       price: item.price,
       originalPrice: item.originalPrice,
+      rating: item.rating,
       category: item.category,
       inBag: item.bagAddedAt !== null,
       likes,

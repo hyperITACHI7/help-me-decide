@@ -1,6 +1,5 @@
 import {
   IconArrowBackUp,
-  IconFlame,
   IconRosetteDiscountCheck,
   IconTruck,
   IconWallet,
@@ -8,8 +7,8 @@ import {
 import { AddToBagButton } from "@/components/AddToBagButton";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductPerks } from "@/components/ProductPerks";
+import { ProductTrustLine } from "@/components/ProductTrustLine";
 import { SizePicker } from "@/components/SizePicker";
-import { StarRating } from "@/components/StarRating";
 import { BADGE_LABELS } from "@/lib/productDetail";
 import type { ItemDetailData } from "@/lib/loadItemDetail";
 
@@ -48,24 +47,12 @@ export function ItemDetail({ item }: { item: ItemDetailData }) {
           {item.name}
         </h1>
 
-        {/* Exact rating, exact counts — see StarRating for why the stars
-            aren't rounded to the nearest whole. */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
-          <span className="flex items-center gap-1.5">
-            <StarRating rating={item.rating} />
-            <span className="font-bold text-ink">{item.rating.toFixed(1)}</span>
-            <span className="text-muted">
-              ({item.reviews.toLocaleString("en-IN")} Reviews)
-            </span>
-          </span>
-          <span className="text-border" aria-hidden>
-            |
-          </span>
-          <span className="flex items-center gap-1.5 font-semibold text-ink">
-            <IconFlame className="h-4 w-4 text-brand" />
-            {item.sold.toLocaleString("en-IN")}+ sold this week
-          </span>
-        </div>
+        <ProductTrustLine
+          itemId={item.id}
+          name={item.name}
+          rating={item.rating}
+          className="mt-3"
+        />
 
         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-2xl font-bold text-ink">₹{item.price}</span>

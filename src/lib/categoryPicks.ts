@@ -141,7 +141,30 @@ export async function getCategoryPicks(
           },
         });
 
-  const cachedQuestions = (baseRow?.questions as NarrowingQuestion[] | null) ?? null;
+  let cachedQuestions = (baseRow?.questions as NarrowingQuestion[] | null) ?? null;
+
+  // A cached row with an empty question set is usually a poisoned result from
+  // a transient generation failure the first time this category was ever
+  // evaluated (picks synthesis and question generation are two independent
+  // calls; one can succeed while the other fails) — not a genuine "nothing to
+  // ask". Left alone, that failure caches silently forever: the early return
+  // below fires on `picks` alone and never reaches the "regenerate if empty"
+  // logic further down, since that only runs on a fresh (uncached) row. Retry
+  // once here, and only the questions — the tiers are still good, so this
+  // shouldn't cost a re-synthesis.
+  if (baseRow && cachedQuestions !== null && cachedQuestions.length === 0) {
+    const retryCandidates = toCandidates(dedupeToBaseProduct(categoryItems));
+    if (retryCandidates.length >= 3) {
+      const retry = await generateNarrowingQuestions(retryCandidates);
+      if (retry.status === "ok" && retry.questions.length > 0) {
+        cachedQuestions = retry.questions;
+        await prisma.categoryPicks.update({
+          where: { id: baseRow.id },
+          data: { questions: retry.questions },
+        });
+      }
+    }
+  }
 
   if (cached) {
     const picks = cached.picks as TierResult[] | null;

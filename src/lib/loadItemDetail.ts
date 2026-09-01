@@ -1,13 +1,12 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { track } from "@/lib/analytics";
-import { reviewCountFor, discountPercent } from "@/lib/display";
+import { discountPercent } from "@/lib/display";
 import {
   assignBadges,
   deliveryDays,
   perksFor,
   sizesFor,
-  soldThisWeek,
   type BadgeKind,
   type Perk,
   type SizeOption,
@@ -23,8 +22,6 @@ export type ItemDetailData = {
   rating: number;
   inBag: boolean;
   badge: BadgeKind | null;
-  reviews: number;
-  sold: number;
   days: number;
   discountPct: number | null;
   sizes: SizeOption[];
@@ -80,8 +77,6 @@ export async function loadItemDetail(
     rating: item.rating,
     inBag: item.bagAddedAt !== null,
     badge: assignBadges(categoryItems).get(item.id) ?? null,
-    reviews: reviewCountFor(item.id),
-    sold: soldThisWeek(item.name),
     days: deliveryDays(item.id),
     discountPct: discountPercent(item.price, item.originalPrice),
     sizes: sizesFor(item.category),

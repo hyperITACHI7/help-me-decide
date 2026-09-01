@@ -10,6 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { AddToBagButton } from "@/components/AddToBagButton";
+import { ProductTrustLine } from "@/components/ProductTrustLine";
 import { Card, Carousel, type CardData } from "@/components/ui/apple-cards-carousel";
 import { LoaderOne } from "@/components/ui/loader";
 import { CircleIconButton, PillButton } from "@/components/ui/pill-button";
@@ -24,6 +25,7 @@ type PanelItem = {
   brand: string;
   imageUrl: string;
   price: number;
+  rating: number;
   inBag: boolean;
 };
 
@@ -110,6 +112,11 @@ export function CategoryPicksPanel({
               content: (
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-ink">{item.brand}</p>
+                  <ProductTrustLine
+                    itemId={item.id}
+                    name={item.name}
+                    rating={item.rating}
+                  />
                   <p className="text-base font-semibold text-ink">₹{item.price}</p>
                   <p className="text-sm leading-relaxed text-muted">{tier.reason}</p>
                   {/* Under the reasoning, not above it: the case comes first

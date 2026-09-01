@@ -91,7 +91,6 @@ export function WishlistGrid({
       items={visibleItems}
       title={activeCategory ?? "Wishlist"}
       breadcrumb="Wishlist"
-      showOpenCount
       // "Add to Wishlist" is meaningless on the wishlist itself; opening an
       // item is what feeds F2 here.
       showAddToWishlist={false}

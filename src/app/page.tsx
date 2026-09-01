@@ -29,6 +29,9 @@ export default async function LandingPage() {
           category: item.category,
           openCount: item.seededOpenCount + item.liveOpenCount,
         }))}
+        // Never wired up before now, so clicking a card here did nothing —
+        // the wishlist grid already links to the item page, this feed didn't.
+        linkToItem
       />
     );
   }

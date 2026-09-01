@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconHeart } from "@tabler/icons-react";
+import { IconHeartFilled } from "@tabler/icons-react";
 import { AddToBagButton } from "@/components/AddToBagButton";
 import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
 import { reviewCountFor, formatReviewCount, discountPercent } from "@/lib/display";
@@ -33,7 +33,6 @@ export function CatalogProductCard({
   item,
   onAddToWishlist,
   selection,
-  openCount,
   linkToItem = false,
   pickTier,
   inBag,
@@ -42,8 +41,6 @@ export function CatalogProductCard({
   onAddToWishlist?: (itemId: string) => void;
   /** When set the card becomes a tap-to-select tile (wishlist triage entry). */
   selection?: CardSelection;
-  /** F2's revealed-preference signal, shown on the wishlist. */
-  openCount?: number;
   /** Makes the whole card the "open this item" tap target that feeds F2. */
   linkToItem?: boolean;
   /** Set when the AI picked this item for the open category. */
@@ -105,24 +102,33 @@ export function CatalogProductCard({
           </span>
         )}
 
-        {openCount !== undefined && !selection && (
-          <span className="pointer-events-none absolute bottom-2 right-2 z-40 inline-flex items-center rounded bg-ink/70 px-1.5 py-0.5 text-[10px] font-medium text-white transition-opacity duration-200 group-hover/product:opacity-0">
-            opened {openCount}×
+        {/* Wherever `onAddToWishlist` is passed (the home/catalog surface),
+            the item is already in the wishlist — that feed is seeded *from*
+            the session's wishlist, there's no broader catalog to discover
+            from (see the doc comment on addToWishlist in app/actions.ts). So
+            this is never really an "add" affordance; it's confirmation of an
+            already-true state, matching Myntra's own resting badge. */}
+        {onAddToWishlist && !selection && (
+          <span className="pointer-events-none absolute right-2 top-2 z-40 flex h-6 w-6 items-center justify-center rounded-full bg-surface/90 text-brand shadow-sm transition-opacity duration-200 group-hover/product:opacity-0">
+            <IconHeartFilled className="h-3.5 w-3.5" />
           </span>
         )}
 
-        {/* Pops up over the image, not below it. CSS-driven so it stays
-            reliable regardless of the image's motion variants. Suppressed in
-            selection mode, where the whole card is the tap target. */}
+        {/* Pops up over the image, not below it, on the same hover this
+            badge fades on — the two swap places rather than stacking. Still a
+            real button wired to the same idempotent ensure (see
+            addToWishlist's doc comment) rather than inert text, so the
+            existing wishlist_add_clicked signal keeps firing — this changes
+            what it looks like, not what it does. */}
         {onAddToWishlist && !selection && (
           <div className="absolute inset-x-0 bottom-0 z-30 translate-y-full p-2 opacity-0 transition-all duration-200 group-hover/product:translate-y-0 group-hover/product:opacity-100">
             <button
               type="button"
               onClick={() => onAddToWishlist(item.id)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-border bg-surface py-2 text-xs font-bold uppercase tracking-wide text-ink shadow-sm transition hover:border-brand hover:text-brand"
+              className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-brand bg-brand-soft py-2 text-xs font-bold uppercase tracking-wide text-brand-dark shadow-sm transition"
             >
-              <IconHeart className="h-4 w-4" />
-              Add to Wishlist
+              <IconHeartFilled className="h-4 w-4" />
+              Wishlisted
             </button>
           </div>
         )}
