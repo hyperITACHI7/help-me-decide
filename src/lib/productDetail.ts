@@ -200,21 +200,27 @@ export function deliveryDays(id: string): number {
  */
 export type PerkIconKey =
   | "feather"
+  | "leaf"
   | "wind"
   | "snowflake"
   | "flame"
   | "sun"
   | "run"
   | "mountain"
+  | "tent"
   | "barbell"
   | "briefcase"
   | "hanger"
+  | "shirt"
   | "award"
   | "trending"
   | "ruler"
+  | "minimize"
   | "maximize"
   | "building"
   | "umbrella"
+  | "luggage"
+  | "grid"
   | "shoe"
   | "shield"
   | "return";
@@ -227,9 +233,12 @@ export type Perk = { title: string; detail: string; icon: PerkIconKey };
  */
 const TAG_PERKS: Record<string, Perk> = {
   cotton: { title: "Pure cotton", detail: "Breathable enough for all-day wear", icon: "feather" },
-  linen: { title: "Linen blend", detail: "Stays cool through the afternoon", icon: "wind" },
+  linen: { title: "Linen blend", detail: "Stays cool through the afternoon", icon: "leaf" },
   fleece: { title: "Fleece lined", detail: "Traps warmth without the bulk", icon: "flame" },
-  quilted: { title: "Quilted shell", detail: "Insulated for a real winter", icon: "snowflake" },
+  // Not another snowflake: this co-occurs with the `winter` tag on every
+  // quilted product, and two identical glyphs side by side is the problem
+  // these icons exist to solve. A quilt is a grid.
+  quilted: { title: "Quilted shell", detail: "Insulated for a real winter", icon: "grid" },
   mesh: { title: "Breathable mesh", detail: "Vents heat while you move", icon: "wind" },
   canvas: { title: "Canvas upper", detail: "Softens as you break it in", icon: "shoe" },
   denim: { title: "Rigid denim", detail: "Holds its shape wash after wash", icon: "hanger" },
@@ -239,15 +248,20 @@ const TAG_PERKS: Record<string, Perk> = {
   trail: { title: "Trail grip", detail: "Lugged sole for loose ground", icon: "mountain" },
   sports: { title: "Made to move", detail: "Holds up to real training", icon: "barbell" },
   formal: { title: "Office-ready", detail: "Structured enough to dress up", icon: "briefcase" },
-  casual: { title: "Everyday cut", detail: "Works with what you already own", icon: "hanger" },
+  // Distinct from `denim`'s hanger: the two share a product (the denim
+  // trucker is tagged both).
+  casual: { title: "Everyday cut", detail: "Works with what you already own", icon: "shirt" },
   premium: { title: "Premium build", detail: "Finished to last past a season", icon: "award" },
   trending: { title: "Trending now", detail: "Moving fast in this category", icon: "trending" },
-  "slim-fit": { title: "Slim fit", detail: "Tapered without being tight", icon: "ruler" },
+  // Paired opposites, and neither reuses the fallback's ruler.
+  "slim-fit": { title: "Slim fit", detail: "Tapered without being tight", icon: "minimize" },
   oversized: { title: "Oversized cut", detail: "Deliberately roomy — size as-is", icon: "maximize" },
   streetwear: { title: "Street-ready", detail: "Made to be seen out", icon: "building" },
-  lightweight: { title: "Packs light", detail: "Folds down into a bag", icon: "feather" },
+  // Not `cotton`'s feather — the windbreaker carries both.
+  lightweight: { title: "Packs light", detail: "Folds down into a bag", icon: "luggage" },
   "rain-resistant": { title: "Rain-resistant", detail: "Shrugs off a light shower", icon: "umbrella" },
-  outdoor: { title: "Outdoor-rated", detail: "Built for weather and distance", icon: "mountain" },
+  // Not `trail`'s mountain — the trail shoe is tagged both.
+  outdoor: { title: "Outdoor-rated", detail: "Built for weather and distance", icon: "tent" },
 };
 
 /** Used when an item's tags don't yield three — never leaves the page short. */
