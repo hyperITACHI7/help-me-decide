@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { IconHeartFilled, IconShare2 } from "@tabler/icons-react";
 import { ProductImage } from "@/components/ProductImage";
+import { cn } from "@/lib/utils";
 import type { ShowcaseSummary, ShowcaseTopItem } from "@/lib/showcaseSummary";
 
 /**
@@ -16,6 +17,13 @@ import type { ShowcaseSummary, ShowcaseTopItem } from "@/lib/showcaseSummary";
  *
  * Always rendered — with no showcase yet it's the invitation to start one,
  * which is now the only entry point since the floating dock is gone.
+ *
+ * One header row carries the whole invitation (label, one-line explanation,
+ * button) with nothing below it — there used to be a second, near-empty
+ * section under a divider just to hold one sentence of copy, which is what
+ * made the button read as stranded in a corner over a mostly blank card. A
+ * second row only earns its keep once there's real content for it: the top
+ * items and the stats, once a showcase actually exists.
  */
 export function ShowcaseWidget({
   summary,
@@ -28,8 +36,13 @@ export function ShowcaseWidget({
 }) {
   return (
     <section className="mb-6 overflow-hidden rounded-2xl border border-border bg-surface">
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border px-6 py-4">
-        <div>
+      <header
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-5",
+          summary && "border-b border-border py-4",
+        )}
+      >
+        <div className="min-w-0">
           <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ink">
             <IconShare2 className="h-4 w-4 text-muted" />
             Showcase
@@ -37,9 +50,10 @@ export function ShowcaseWidget({
               · across every category
             </span>
           </span>
-          <p className="mt-1.5 text-sm text-muted">{describe(summary)}</p>
+          <p className="mt-1.5 max-w-md text-sm text-muted">{describe(summary)}</p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
           {summary?.revoked && (
             <span className="rounded-full bg-canvas px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted">
               Closed
@@ -65,10 +79,18 @@ export function ShowcaseWidget({
           >
             {summary ? "New showcase" : "Start a showcase"}
           </button>
+          {/* w-full wraps this onto its own line under the button within the
+              flex-wrap row above, right-aligned with it, rather than needing
+              a whole separate section just to say why it's disabled. */}
+          {!summary && !canStart && (
+            <span className="w-full text-right text-[11px] text-muted">
+              Add a couple of items first
+            </span>
+          )}
         </div>
       </header>
 
-      {summary ? (
+      {summary && (
         <div className="flex flex-col gap-8 p-6 lg:flex-row lg:items-center">
           {summary.top.length > 0 && (
             <TopItems top={summary.top} />
@@ -89,19 +111,6 @@ export function ShowcaseWidget({
               }
             />
           </dl>
-        </div>
-      ) : (
-        <div className="px-6 py-5">
-          <p className="max-w-lg text-sm leading-relaxed text-muted">
-            Pick anything from your wishlist — any category, mixed together —
-            and send one link. Friends swipe through it without needing an
-            account, and their reactions land back here.
-          </p>
-          {!canStart && (
-            <p className="mt-2 text-xs text-muted">
-              Add a couple of items to your wishlist first.
-            </p>
-          )}
         </div>
       )}
     </section>
@@ -161,7 +170,9 @@ function TopItems({ top }: { top: ShowcaseTopItem[] }) {
 }
 
 function describe(summary: ShowcaseSummary | null): string {
-  if (!summary) return "See what your friends actually think.";
+  if (!summary) {
+    return "Send friends a pick from your wishlist — see what they like best.";
+  }
   if (summary.revoked) return "Closed — friends can't react to this one any more.";
   if (summary.reactionCount === 0) {
     return "Shared and open — no reactions have come in yet.";
