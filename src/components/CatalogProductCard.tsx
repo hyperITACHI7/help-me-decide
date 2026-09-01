@@ -189,7 +189,7 @@ export function CatalogProductCard({
             inBag={inBag}
             source="wishlist"
             full
-            className="pointer-events-auto rounded-sm py-2 shadow-sm"
+            className="pointer-events-auto"
           />
         </div>
       </div>

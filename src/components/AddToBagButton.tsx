@@ -55,11 +55,18 @@ export function AddToBagButton({
         });
       }}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition disabled:opacity-50",
+        // Same button as "Add to Wishlist" (CatalogProductCard's onAddToWishlist
+        // control) — border, surface fill, rounded-sm, uppercase label. Matters
+        // for more than consistency here: this button sits overlaid on a photo,
+        // and the previous "in bag" style (bg-transparent, an inset-shadow ring
+        // with nothing behind it) let the rating pill bleed through once it was
+        // painted on top. A solid fill in both states is load-bearing, not just
+        // cosmetic.
+        "flex items-center justify-center gap-1.5 rounded-sm border py-2 text-xs font-bold uppercase tracking-wide shadow-sm transition disabled:opacity-50",
         full && "w-full",
         inBag
-          ? "bg-transparent text-ink shadow-[inset_0_0_0_2px_var(--color-border)] hover:shadow-[inset_0_0_0_2px_var(--color-ink)]"
-          : "bg-ink text-white hover:opacity-90",
+          ? "border-brand bg-brand-soft text-brand-dark hover:border-ink hover:text-ink"
+          : "border-border bg-surface text-ink hover:border-brand hover:text-brand",
         className,
       )}
     >
