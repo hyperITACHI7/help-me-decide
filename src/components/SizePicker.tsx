@@ -60,6 +60,12 @@ export function SizePicker({
               // screen reader that never fires a mouse event.
               aria-label={`Size ${size.label}. ${size.fit}`}
               onMouseEnter={() => setPreview(size.label)}
+              // Cleared per chip rather than relying only on the row's
+              // mouseleave: caught live on production, a pointer leaving the
+              // row in one motion could skip that handler and strand the last
+              // hovered size's note above Add-to-bag while a different size
+              // was selected. Leaving a chip always fires its own leave.
+              onMouseLeave={() => setPreview(null)}
               onFocus={() => setPreview(size.label)}
               onBlur={() => setPreview(null)}
               onClick={() => setSelected(isSelected ? null : size.label)}
