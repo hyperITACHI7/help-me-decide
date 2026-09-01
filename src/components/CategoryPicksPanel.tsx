@@ -251,7 +251,7 @@ export function CategoryPicksPanel({
             <p className="mt-1.5 text-center text-sm leading-relaxed text-muted">
               {showSummary
                 ? "Tap any answer to change it."
-                : "Optional — answer one and the next appears."}
+                : "Optional — each answer narrows the three picks above."}
             </p>
 
             {/* flex-1 + justify-center: at xl this box is stretched to the
