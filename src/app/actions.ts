@@ -27,8 +27,8 @@ export async function startDemo(formData: FormData) {
  * catalog card does too. In this prototype the home feed is seeded *from* the
  * session's wishlist, so every visible card is already wishlisted and this is
  * an idempotent ensure rather than an insert — it records the intent and
- * leaves the row untouched. Scoped by sessionId for the same reason as
- * openItem: Server Actions are reachable by direct POST.
+ * leaves the row untouched. Scoped by sessionId because Server Actions are
+ * reachable by direct POST, not just through this UI.
  */
 export async function addToWishlist(itemId: string) {
   if (typeof itemId !== "string" || itemId.length === 0) return;
@@ -45,26 +45,9 @@ export async function addToWishlist(itemId: string) {
   }
 }
 
-/**
- * F2's revealed-preference signal (problem_statement.md §1 step 2) — a real
- * in-app action, not a dead counter (edge_case.md EC4). Scoped with
- * `updateMany` + a sessionId filter so a stray/forged itemId from a
- * different session can never be incremented (Server Actions are reachable
- * by direct POST, not just through this UI — see Next.js data-security guide).
- */
-export async function openItem(formData: FormData) {
-  const itemId = formData.get("itemId");
-  if (typeof itemId !== "string") return;
-
-  const session = await getSession();
-  if (!session) return;
-
-  const result = await prisma.wishlistItem.updateMany({
-    where: { id: itemId, sessionId: session.id },
-    data: { liveOpenCount: { increment: 1 } },
-  });
-
-  if (result.count > 0) {
-    await track("item_opened", { sessionId: session.id, props: { itemId } });
-  }
-}
+// F2's revealed-preference signal (problem_statement.md §1 step 2, EC4) used
+// to live here as an `openItem` action the card POSTed to. It moved into
+// src/app/item/[id]/page.tsx when cards started opening a real product page:
+// arriving on the page IS the open, so recording it there measures the same
+// intent more directly and leaves no unreferenced Server Action behind — an
+// exported action nobody calls is still a reachable POST endpoint.

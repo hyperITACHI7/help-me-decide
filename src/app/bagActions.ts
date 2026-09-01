@@ -17,9 +17,9 @@ const orderSuffix = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 8);
 /**
  * Put a wishlist item in the bag, or take it back out.
  *
- * Scoped with `updateMany` + a sessionId filter for the same reason `openItem`
- * is: Server Actions are reachable by direct POST, so a forged itemId from
- * another session has to silently no-op rather than move someone else's item.
+ * Scoped with `updateMany` + a sessionId filter because Server Actions are
+ * reachable by direct POST, so a forged itemId from another session has to
+ * silently no-op rather than move someone else's item.
  *
  * `source` records which surface the shopper acted from — the wishlist grid,
  * the AI's picks, or a showcase result. That's what makes

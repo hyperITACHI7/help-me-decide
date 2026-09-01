@@ -31,7 +31,7 @@ export function AddToBagButton({
   itemId: string;
   inBag: boolean;
   /** Which surface this was pressed from — see toggleBag. */
-  source: "wishlist" | "ai_picks" | "showcase";
+  source: "wishlist" | "ai_picks" | "showcase" | "item";
   className?: string;
   /** Stretch to the container's width (card footers), rather than hug. */
   full?: boolean;

@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { IconHeart } from "@tabler/icons-react";
-import { openItem } from "@/app/actions";
 import { AddToBagButton } from "@/components/AddToBagButton";
 import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
 import { reviewCountFor, formatReviewCount, discountPercent } from "@/lib/display";
@@ -34,7 +34,7 @@ export function CatalogProductCard({
   onAddToWishlist,
   selection,
   openCount,
-  submitOpenItem = false,
+  linkToItem = false,
   pickTier,
   inBag,
 }: {
@@ -45,7 +45,7 @@ export function CatalogProductCard({
   /** F2's revealed-preference signal, shown on the wishlist. */
   openCount?: number;
   /** Makes the whole card the "open this item" tap target that feeds F2. */
-  submitOpenItem?: boolean;
+  linkToItem?: boolean;
   /** Set when the AI picked this item for the open category. */
   pickTier?: TierName;
   /** Omit entirely on surfaces with no bag (the public catalogue). */
@@ -195,17 +195,18 @@ export function CatalogProductCard({
       </div>
     );
 
-  if (submitOpenItem) {
+  if (linkToItem) {
     return (
       <div className="group/card relative">
-        <form action={openItem}>
-          <input type="hidden" name="itemId" value={item.id} />
-          {/* The whole card is the "open this item" tap target (F2's revealed-
-              preference signal, edge_case.md EC4). */}
-          <button type="submit" className="block w-full text-left">
-            {body}
-          </button>
-        </form>
+        {/* The whole card opens the item. It used to be a form that POSTed
+            openItem and stayed put, which meant a click had no visible
+            outcome; the item page records that same F2 revealed-preference
+            signal (edge_case.md EC4) on arrival instead, where it measures a
+            shopper who actually landed on the product rather than one who
+            brushed a tile. */}
+        <Link href={`/item/${item.id}`} className="block w-full text-left">
+          {body}
+        </Link>
         {bagOverlay}
       </div>
     );

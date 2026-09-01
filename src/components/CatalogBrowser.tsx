@@ -52,7 +52,7 @@ export function CatalogBrowser({
   selection,
   showOpenCount = false,
   showAddToWishlist = true,
-  submitOpenItem = false,
+  linkToItem = false,
   hideCategoryFilter = false,
   pickTiers,
   beforeGrid,
@@ -68,7 +68,7 @@ export function CatalogBrowser({
   };
   showOpenCount?: boolean;
   showAddToWishlist?: boolean;
-  submitOpenItem?: boolean;
+  linkToItem?: boolean;
   /** Set when the caller supplies its own category control (the wishlist rail). */
   hideCategoryFilter?: boolean;
   /** The AI's picks for the open category, keyed by item id. */
@@ -284,7 +284,7 @@ export function CatalogBrowser({
                     item={item}
                     onAddToWishlist={showAddToWishlist ? addToWishlist : undefined}
                     openCount={showOpenCount ? item.openCount : undefined}
-                    submitOpenItem={submitOpenItem}
+                    linkToItem={linkToItem}
                     pickTier={pickTiers?.get(item.id)}
                     inBag={item.inBag}
                     selection={

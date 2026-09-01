@@ -95,7 +95,7 @@ export function WishlistGrid({
       // "Add to Wishlist" is meaningless on the wishlist itself; opening an
       // item is what feeds F2 here.
       showAddToWishlist={false}
-      submitOpenItem={!selecting}
+      linkToItem={!selecting}
       selection={selecting ? { selectedIds, onToggle: toggle } : undefined}
       // The rail is the category control here, so the sidebar's own Category
       // facet would be a second, conflicting one.

@@ -12,7 +12,7 @@ import {
 /**
  * Picks for one category of the shopper's own wishlist. The category's items
  * are read server-side from the session rather than accepted from the client,
- * for the same reason openItem is scoped by sessionId: Server Actions are
+ * for the same reason every mutation here is scoped by sessionId: Server Actions are
  * reachable by direct POST, so a forged item list must not be able to steer
  * what the AI sees or whose wishlist is read.
  */
