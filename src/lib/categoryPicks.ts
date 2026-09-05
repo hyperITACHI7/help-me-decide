@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { popularityFor } from "@/lib/popularity";
+import { popularityBand, popularityFor } from "@/lib/popularity";
 import {
   generateNarrowingQuestions,
   synthesizeCategoryTiers,
@@ -12,9 +12,21 @@ import {
 export type CategoryAnswer = { question: string; answer: string };
 
 export type CategoryPicksView =
-  | { status: "ok"; tiers: TierResult[]; questions: NarrowingQuestion[] }
+  | {
+      status: "ok";
+      tiers: TierResult[];
+      questions: NarrowingQuestion[];
+      /**
+       * Ranked on plain numbers because the model was unavailable, not on its
+       * reading of the shopper. Surfaced so the panel can say so — presenting
+       * an openCount/price ranking as if it were the AI's reasoning would be
+       * the one thing this feature must not do.
+       */
+      degraded?: boolean;
+    }
   | { status: "too_few"; count: number; questions: NarrowingQuestion[] }
-  | { status: "not_configured" }
+  // No "not_configured": a missing key degrades to the local ranking above
+  // rather than to an empty panel, so it can't reach the client any more.
   | { status: "error"; message: string };
 
 /** Row shape the wishlist page already loads. */
@@ -98,6 +110,60 @@ function answersHashFor(answers: CategoryAnswer[]): string {
       .sort()
       .join("|")
   );
+}
+
+/**
+ * Three tiers with no model involved, for when the AI is unreachable or not
+ * configured. The panel promises three ways to decide; returning a bare error
+ * note instead left the shopper with nothing to compare, which is worse than
+ * a plainer answer.
+ *
+ * Every tier here is a real number this app already has — the shopper's own
+ * opens (F2), the crowd popularity score, and price — so nothing is invented
+ * to fill the gap. The reasons state the measure rather than imitating the
+ * model's voice, and the view is flagged `degraded` so the panel can say the
+ * AI is the part that's missing.
+ */
+function localTiers(items: CategoryItem[]): TierResult[] {
+  const taken = new Set<string>();
+  const claim = (ranked: CategoryItem[]): CategoryItem => {
+    const next = ranked.find((item) => !taken.has(item.id)) ?? ranked[0]!;
+    taken.add(next.id);
+    return next;
+  };
+
+  const byName = (a: CategoryItem, b: CategoryItem) => a.name.localeCompare(b.name);
+  const popularity = (item: CategoryItem) => popularityFor(item.name.split(" — ")[0]!);
+
+  // Their own revisits are the closest thing to "suits you" without a model.
+  const mostOpened = claim(
+    [...items].sort((a, b) => b.openCount - a.openCount || byName(a, b))
+  );
+  const mostPopular = claim(
+    [...items].sort((a, b) => popularity(b) - popularity(a) || byName(a, b))
+  );
+  const cheapest = claim([...items].sort((a, b) => a.price - b.price || byName(a, b)));
+
+  return [
+    {
+      tier: "best_pick",
+      itemId: mostOpened.id,
+      reason:
+        mostOpened.openCount > 0
+          ? `You've opened this one the most in ${mostOpened.category}.`
+          : `Leads ${mostOpened.category} on the numbers we have.`,
+    },
+    {
+      tier: "most_trending",
+      itemId: mostPopular.id,
+      reason: `${popularityBand(popularity(mostPopular))} across the store.`,
+    },
+    {
+      tier: "value_for_money",
+      itemId: cheapest.id,
+      reason: `The lowest price in ${cheapest.category}, at ₹${cheapest.price}.`,
+    },
+  ];
 }
 
 function toCandidates(items: CategoryItem[]): CategoryCandidate[] {
@@ -185,7 +251,8 @@ export async function getCategoryPicks(
     }
   }
 
-  const candidates = toCandidates(dedupeToBaseProduct(categoryItems));
+  const deduped = dedupeToBaseProduct(categoryItems);
+  const candidates = toCandidates(deduped);
 
   // Only ask for questions once per category-contents, then reuse.
   let questions: NarrowingQuestion[] = cachedQuestions ?? [];
@@ -200,8 +267,18 @@ export async function getCategoryPicks(
 
   const result = await synthesizeCategoryTiers(category, candidates, answers);
 
-  if (result.status === "not_configured") return { status: "not_configured" };
-  if (result.status === "error") return { status: "error", message: result.message };
+  // The panel's whole promise is three ways to decide, so an unreachable or
+  // unconfigured model degrades to a plain ranking rather than to nothing.
+  // Deliberately not cached: this is a stand-in for a real evaluation, and
+  // caching it would keep serving it long after the model came back.
+  if (result.status === "not_configured" || result.status === "error") {
+    return {
+      status: "ok",
+      tiers: localTiers(deduped),
+      questions,
+      degraded: true,
+    };
+  }
   if (result.status === "too_few") {
     return { status: "too_few", count: result.count, questions };
   }

@@ -1,26 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createSeededSession, getSession } from "@/lib/session";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { track } from "@/lib/analytics";
-import type { WishlistVariant } from "@/generated/prisma/client";
 
-/**
- * Landing-page chooser action (edge_case.md §2.6 / EC1) — a cold visitor
- * explicitly picks the 3-item or 60-item demo instead of a coin-flip
- * default, so F8's two sizes are both reliably reachable during cold-test.
- */
-export async function startDemo(formData: FormData) {
-  const variant = formData.get("variant");
-  if (variant !== "small" && variant !== "large") {
-    throw new Error(`Invalid wishlist variant: ${String(variant)}`);
-  }
-  await createSeededSession(variant as WishlistVariant);
-  // Land on the home screen first, matching a real visit's shape (home →
-  // wishlist icon → wishlist) rather than jumping straight past it.
-  redirect("/");
-}
+// The landing-page chooser action (edge_case.md §2.6 / EC1) used to live here,
+// letting a cold visitor pick the 3-item or 60-item demo. The 60-item wishlist
+// is the only size now, so there is nothing to choose: src/app/start seeds it
+// on first visit instead, and this action is gone rather than left as an
+// exported Server Action nobody calls — those stay reachable by direct POST.
 
 /**
  * Myntra's listing cards expose an "Add to Wishlist" control on hover, so the

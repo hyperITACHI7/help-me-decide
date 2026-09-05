@@ -161,6 +161,16 @@ export function CategoryPicksPanel({
             Three ways to decide — a suggestion, not a verdict.
           </p>
         </div>
+        {/* The three cards look identical either way, so if they were ranked
+            on plain numbers rather than read by the model, the panel has to
+            say so rather than let them pass as its reasoning. */}
+        {view?.status === "ok" && view.degraded && (
+          <p className="mt-2 text-xs text-muted">
+            The AI is unreachable right now — these are ranked on your own
+            opens, the store&apos;s popularity and price, and don&apos;t
+            respond to the questions below.
+          </p>
+        )}
       </header>
 
       {/* Cards lead on the left; the questions are a control rail to their
@@ -192,13 +202,6 @@ export function CategoryPicksPanel({
               <LoaderOne />
               <p className="text-sm text-muted">Working out the picks…</p>
             </div>
-          )}
-
-          {view?.status === "not_configured" && (
-            <PanelNote>
-              AI picks aren&apos;t configured on the server — this is a setup gap,
-              not a judgment about these items.
-            </PanelNote>
           )}
 
           {view?.status === "error" && (
