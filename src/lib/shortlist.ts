@@ -142,26 +142,26 @@ ${qaLines}
 The candidates:
 ${candidateLines(capped)}
 
-First work out "fits": the ids of the candidates that genuinely match what the shopper told us, best fit first — at least 3, at most 6. Never include an item that contradicts something they said: if they asked for linen, a flannel shirt does not fit. If they answered nothing, treat every candidate as fitting.
+First work out "fits": the ids of the candidates that genuinely match what the shopper told us, best fit first. Never include an item that contradicts something they said: if they asked for linen, a flannel shirt does not fit. Be honest about how many really match — if only one does, return only that one; if they answered nothing, treat every candidate as fitting.
 
-Then, choosing ONLY from "fits":
-- "best_pick": the single item that best suits what they said.
-- "value_for_money": a DIFFERENT item from "fits" that gives the most for its price. It must still match what they told us — never recommend something they ruled out just because it is cheap. Judge price against attributes and quality only, never any discount, sale, or predicted price change.
+Then:
+- "best_pick": the single item that best suits what they said — from "fits" whenever "fits" is not empty.
+- "value_for_money": a DIFFERENT item that gives the most for its price. Prefer one from "fits"; never recommend something they ruled out just because it is cheap. Judge price against attributes and quality only, never any discount, sale, or predicted price change.
 
-Then "fit_reasons": for EVERY id in "fits", one sentence on why that item is worth a look, grounded in that item's own attributes. Do not claim to know sales figures or how many people bought it.
+Then "reasons": for EVERY candidate id above, one sentence on why that item is worth a look, grounded in that item's own attributes. Do not claim to know sales figures or how many people bought it.
 
 These are different lenses on the same category, not votes for one item. Every reason must be one sentence, grounded in that item's real attributes.
 
 ${PRICING_POLICY_LINE}
 
 Return ONLY a JSON object:
-{"fits": ["id", ...], "best_pick": {"itemId": "...", "reason": "..."}, "value_for_money": {"itemId": "...", "reason": "..."}, "fit_reasons": {"id": "sentence", ...}}`;
+{"fits": ["id", ...], "best_pick": {"itemId": "...", "reason": "..."}, "value_for_money": {"itemId": "...", "reason": "..."}, "reasons": {"id": "sentence", ...}}`;
 
   const result = await callGroqJson<{
     fits: string[];
     best_pick: { itemId: string; reason: string };
     value_for_money: { itemId: string; reason: string };
-    fit_reasons: Record<string, string>;
+    reasons: Record<string, string>;
   }>("large", prompt, { temperature: 0.3 });
 
   if (!result.configured) return { status: "not_configured" };
@@ -169,50 +169,69 @@ Return ONLY a JSON object:
     return { status: "error", message: result.error ?? "No response" };
   }
 
-  const { fits, best_pick, value_for_money, fit_reasons } = result.parsed;
+  const { fits, best_pick, value_for_money, reasons } = result.parsed;
+  if (!reasons) {
+    return { status: "error", message: "Model returned no reasons" };
+  }
 
   // Hallucinated-id guard (edge_case.md EC13/EC14), applied to the fit set
   // itself so everything downstream is already known-good.
   const fitIds = Array.isArray(fits)
     ? [...new Set(fits.filter((id) => typeof id === "string" && byId.has(id)))]
     : [];
-  if (fitIds.length < 3 || !fit_reasons) {
-    return { status: "error", message: "Model returned an unusable fit set" };
+
+  // Fits are a priority order, NOT a filter: candidates are deduped to one
+  // row per base product (see dedupeToBaseProduct), so a category can be as
+  // small as four, and a specific answer — "linen" against four shirts —
+  // can honestly match exactly one. Three tiers still need three items, so
+  // anything unfitting stays available to fill the remainder rather than
+  // turning a correct, narrow answer into a failed panel.
+  const filler = capped
+    .filter((c) => !fitIds.includes(c.id))
+    .sort((a, b) => b.popularity - a.popularity || a.name.localeCompare(b.name))
+    .map((c) => c.id);
+  const pool = [...fitIds, ...filler];
+  if (pool.length < 3) {
+    return { status: "too_few", count: pool.length };
   }
 
-  // Ours, not the model's — but measured over what the shopper actually
-  // asked for rather than the whole category. Tie-broken by name so the pick
-  // never depends on array order (which varies with the open-count sort).
-  const pinned = fitIds
-    .map((id) => byId.get(id)!)
-    .sort((a, b) => b.popularity - a.popularity || a.name.localeCompare(b.name))[0]!;
-
-  // The model can't know which item the popularity pin will land on, so a
-  // collision with its own two picks is expected rather than a failure —
-  // fall through to the next-best fit instead of erroring the whole panel.
-  const taken = new Set<string>([pinned.id]);
-  const claim = (wanted: string | undefined): string | undefined => {
-    const id =
-      wanted && fitIds.includes(wanted) && !taken.has(wanted)
-        ? wanted
-        : fitIds.find((candidate) => !taken.has(candidate));
-    if (id) taken.add(id);
-    return id;
+  const taken = new Set<string>();
+  const claim = (...preferences: (string | undefined)[]): string => {
+    for (const wanted of preferences) {
+      if (wanted && byId.has(wanted) && !taken.has(wanted)) {
+        taken.add(wanted);
+        return wanted;
+      }
+    }
+    const next = pool.find((id) => !taken.has(id))!;
+    taken.add(next);
+    return next;
   };
 
-  const bestId = claim(best_pick?.itemId);
+  // Best pick is claimed first, so the one item that actually matches a very
+  // narrow answer goes to the tier that is about matching them.
+  const bestId = claim(best_pick?.itemId, fitIds[0]);
+
+  // Ours, not the model's — but measured over what the shopper asked for
+  // rather than the whole category, which is what used to freeze this tier.
+  // Tie-broken by name so it never depends on array order (which varies with
+  // the wishlist's open-count sort).
+  const popularFirst = (ids: string[]) =>
+    ids
+      .filter((id) => !taken.has(id))
+      .map((id) => byId.get(id)!)
+      .sort((a, b) => b.popularity - a.popularity || a.name.localeCompare(b.name))[0]?.id;
+  const pinnedId = claim(popularFirst(fitIds), popularFirst(pool));
+
   const valueId = claim(value_for_money?.itemId);
-  if (!bestId || !valueId) {
-    return { status: "error", message: "Model returned too few distinct fits" };
-  }
 
   // A reassigned tier loses the sentence the model wrote for its own choice,
-  // so fall back to that item's own fit_reason.
+  // so fall back to that item's own entry in `reasons`.
   const bestReason =
-    bestId === best_pick?.itemId ? best_pick.reason : fit_reasons[bestId];
+    bestId === best_pick?.itemId ? best_pick.reason : reasons[bestId];
   const valueReason =
-    valueId === value_for_money?.itemId ? value_for_money.reason : fit_reasons[valueId];
-  const pinnedReason = fit_reasons[pinned.id];
+    valueId === value_for_money?.itemId ? value_for_money.reason : reasons[valueId];
+  const pinnedReason = reasons[pinnedId];
 
   if (!bestReason || !valueReason || !pinnedReason) {
     return { status: "error", message: "Model returned an incomplete pick set" };
@@ -226,7 +245,7 @@ Return ONLY a JSON object:
     status: "ok",
     tiers: [
       { tier: "best_pick", itemId: bestId, reason: bestReason },
-      { tier: "most_trending", itemId: pinned.id, reason: pinnedReason },
+      { tier: "most_trending", itemId: pinnedId, reason: pinnedReason },
       { tier: "value_for_money", itemId: valueId, reason: valueReason },
     ],
   };
