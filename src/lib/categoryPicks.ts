@@ -84,8 +84,13 @@ export function dedupeToBaseProduct(items: CategoryItem[]): CategoryItem[] {
  * v2: all three tiers are now drawn from the answer-relevant set. Rows cached
  * under v1 have a "Most Popular" pinned over the whole category before the
  * answers were read, so they cannot respond to the narrowing questions at all.
+ *
+ * v3: the price tier is labelled after the three items are chosen, not while
+ * they are being claimed. Rows cached under v2 can hold a "Value for money"
+ * card dearer than both cards beside it — visibly wrong, and no amount of
+ * waiting re-evaluates a row that still matches.
  */
-const PICKS_LOGIC_VERSION = "v2";
+const PICKS_LOGIC_VERSION = "v3";
 
 /**
  * Identity of a category's contents. Deliberately built from the full item id

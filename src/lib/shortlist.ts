@@ -223,15 +223,57 @@ Return ONLY a JSON object:
       .sort((a, b) => b.popularity - a.popularity || a.name.localeCompare(b.name))[0]?.id;
   const pinnedId = claim(popularFirst(fitIds), popularFirst(pool));
 
-  const valueId = claim(value_for_money?.itemId);
+  // Claiming third, this tier is the one most often left with whatever the
+  // other two didn't want — and `claim`'s last resort walks `pool`, which is
+  // ordered by fit then popularity and never looks at price. So when the
+  // model's own value pick was already taken, prefer the cheapest thing still
+  // going before falling back to pool order.
+  const cheapestFirst = (ids: string[]) =>
+    ids
+      .filter((id) => !taken.has(id))
+      .map((id) => byId.get(id)!)
+      .sort((a, b) => a.price - b.price || a.name.localeCompare(b.name))[0]?.id;
+  const claimedValueId = claim(
+    value_for_money?.itemId,
+    cheapestFirst(fitIds),
+    cheapestFirst(pool)
+  );
+
+  // Even so, after dedupeToBaseProduct thins a category to ~4 candidates the
+  // two cheapest are often already spoken for, and the price tier ends up
+  // dearer than both cards beside it. On Jackets that produced a "Value for
+  // money" card at ₹2499 next to ₹1599 and ₹1999, over a sentence that just
+  // described the product ("a lightweight sleeveless puffer vest…") because a
+  // displaced tier falls back to `reasons`. Nothing there argues value; the
+  // label was doing all the work, and a shopper can falsify it by looking one
+  // card left.
+  //
+  // Where the model actually chose this item as its value pick, that judgement
+  // stands — price against quality is its call, and its own sentence makes the
+  // case. It's only when the tier was reassigned that there is no judgement
+  // left to respect, and then price is the one value signal we have, so the
+  // label goes to the cheapest of the three actually on screen.
+  const modelChoseValue = claimedValueId === value_for_money?.itemId;
+  const chosen = [bestId, pinnedId, claimedValueId].map((id) => byId.get(id)!);
+  const valueItem = modelChoseValue
+    ? byId.get(claimedValueId)!
+    : [...chosen].sort((a, b) => a.price - b.price || a.name.localeCompare(b.name))[0]!;
+  const others = chosen.filter((item) => item.id !== valueItem.id);
+  // Keeps the model's best pick on the best-pick card whenever the relabel
+  // above didn't take that very item for value.
+  const bestItem = others.find((item) => item.id === best_pick?.itemId) ?? others[0]!;
+  const pinnedItem = others.find((item) => item.id !== bestItem.id)!;
+
+  const valueId = valueItem.id;
 
   // A reassigned tier loses the sentence the model wrote for its own choice,
   // so fall back to that item's own entry in `reasons`.
   const bestReason =
-    bestId === best_pick?.itemId ? best_pick.reason : reasons[bestId];
-  const valueReason =
-    valueId === value_for_money?.itemId ? value_for_money.reason : reasons[valueId];
-  const pinnedReason = reasons[pinnedId];
+    bestItem.id === best_pick?.itemId ? best_pick.reason : reasons[bestItem.id];
+  const valueReason = modelChoseValue
+    ? value_for_money!.reason
+    : reasons[valueId];
+  const pinnedReason = reasons[pinnedItem.id];
 
   if (!bestReason || !valueReason || !pinnedReason) {
     return { status: "error", message: "Model returned an incomplete pick set" };
@@ -244,8 +286,8 @@ Return ONLY a JSON object:
   return {
     status: "ok",
     tiers: [
-      { tier: "best_pick", itemId: bestId, reason: bestReason },
-      { tier: "most_trending", itemId: pinnedId, reason: pinnedReason },
+      { tier: "best_pick", itemId: bestItem.id, reason: bestReason },
+      { tier: "most_trending", itemId: pinnedItem.id, reason: pinnedReason },
       { tier: "value_for_money", itemId: valueId, reason: valueReason },
     ],
   };
