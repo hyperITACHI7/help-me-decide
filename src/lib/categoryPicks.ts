@@ -135,33 +135,54 @@ function localTiers(items: CategoryItem[]): TierResult[] {
   const byName = (a: CategoryItem, b: CategoryItem) => a.name.localeCompare(b.name);
   const popularity = (item: CategoryItem) => popularityFor(item.name.split(" — ")[0]!);
 
+  // Pick the three items first, each on its own measure and none of them twice.
   // Their own revisits are the closest thing to "suits you" without a model.
-  const mostOpened = claim(
-    [...items].sort((a, b) => b.openCount - a.openCount || byName(a, b))
-  );
-  const mostPopular = claim(
-    [...items].sort((a, b) => popularity(b) - popularity(a) || byName(a, b))
-  );
-  const cheapest = claim([...items].sort((a, b) => a.price - b.price || byName(a, b)));
+  const picked = [
+    claim([...items].sort((a, b) => b.openCount - a.openCount || byName(a, b))),
+    claim([...items].sort((a, b) => a.price - b.price || byName(a, b))),
+    claim([...items].sort((a, b) => popularity(b) - popularity(a) || byName(a, b))),
+  ];
+
+  // Then label them, because selecting on a measure doesn't mean the card can
+  // carry that measure's claim. Selection runs in sequence and each tier only
+  // sees what the ones before it left, so after dedupeToBaseProduct thins a
+  // category to ~4 candidates the price tier can end up holding an item that
+  // both siblings undercut: on Jackets it took ₹2499 next to cards reading
+  // ₹1999 and ₹1599 — "Value for money" as the priciest of the three, over a
+  // reason that called it "the lowest price in Jackets". A shopper can falsify
+  // that by looking one card left, and a degraded panel that says something
+  // untrue is worse than the empty one this fallback replaced.
+  //
+  // So the price label goes to whichever of the three is actually cheapest,
+  // and the other two are labelled from what's left. Each reason below is then
+  // true by construction rather than true only when the sequence cooperated.
+  const valueItem = [...picked].sort((a, b) => a.price - b.price || byName(a, b))[0]!;
+  const rest = picked.filter((item) => item.id !== valueItem.id);
+  const bestItem = [...rest].sort(
+    (a, b) => b.openCount - a.openCount || byName(a, b)
+  )[0]!;
+  const trendingItem = rest.find((item) => item.id !== bestItem.id)!;
 
   return [
     {
       tier: "best_pick",
-      itemId: mostOpened.id,
+      itemId: bestItem.id,
       reason:
-        mostOpened.openCount > 0
-          ? `You've opened this one the most in ${mostOpened.category}.`
-          : `Leads ${mostOpened.category} on the numbers we have.`,
+        bestItem.openCount > 0
+          ? `You've opened this one the most of the three.`
+          : `Leads ${bestItem.category} on the numbers we have.`,
     },
     {
+      // A band ("Very popular across the store") describes this item on its
+      // own, so it stays true whichever of the three ends up here.
       tier: "most_trending",
-      itemId: mostPopular.id,
-      reason: `${popularityBand(popularity(mostPopular))} across the store.`,
+      itemId: trendingItem.id,
+      reason: `${popularityBand(popularity(trendingItem))} across the store.`,
     },
     {
       tier: "value_for_money",
-      itemId: cheapest.id,
-      reason: `The lowest price in ${cheapest.category}, at ₹${cheapest.price}.`,
+      itemId: valueItem.id,
+      reason: `The lowest price of these three, at ₹${valueItem.price}.`,
     },
   ];
 }
