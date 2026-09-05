@@ -64,6 +64,18 @@ export function dedupeToBaseProduct(items: CategoryItem[]): CategoryItem[] {
 }
 
 /**
+ * Bump when the selection logic changes in a way that would make already-cached
+ * picks wrong rather than merely old. Folded into itemsHash, so every existing
+ * row stops matching and is simply never read again (the model rewrites them on
+ * next view) without deleting anything.
+ *
+ * v2: all three tiers are now drawn from the answer-relevant set. Rows cached
+ * under v1 have a "Most Popular" pinned over the whole category before the
+ * answers were read, so they cannot respond to the narrowing questions at all.
+ */
+const PICKS_LOGIC_VERSION = "v2";
+
+/**
  * Identity of a category's contents. Deliberately built from the full item id
  * set (not a count, and not the deduped set) so that adding OR removing any
  * item — including a Clean Wishlist deletion of a current pick — produces a
@@ -71,10 +83,10 @@ export function dedupeToBaseProduct(items: CategoryItem[]): CategoryItem[] {
  */
 function itemsHashFor(items: CategoryItem[]): string {
   return hash(
-    items
+    `${PICKS_LOGIC_VERSION}:${items
       .map((i) => i.id)
       .sort()
-      .join(",")
+      .join(",")}`
   );
 }
 

@@ -172,11 +172,18 @@ export function CategoryPicksPanel({
           that breakpoint the rail moves above the cards (order-first) full
           width, where the same content just doesn't stretch. */}
       <div className="flex flex-col gap-6 p-6 xl:flex-row">
-        {/* w-fit rather than flex-1: the carousel is a fixed 3 cards, so a
-            growing column just pads dead space onto its own right edge.
-            min-w-0 lets it shrink and scroll if the rail's floor leaves it
-            less than three cards' worth of room. */}
-        <div className="min-w-0 xl:w-fit" aria-live="polite">
+        {/* w-fit rather than flex-1 once the carousel is there: it's a fixed 3
+            cards, so a growing column just pads dead space onto its own right
+            edge. min-w-0 lets it shrink and scroll if the rail's floor leaves
+            it less than three cards' worth of room.
+            Every other state (loading, and the three notes below) has no
+            carousel to shrink-wrap, so w-fit collapsed the column to the
+            spinner's own width and stranded it against the left edge — those
+            states take the full column and centre inside it instead. */}
+        <div
+          className={cn("min-w-0", view?.status === "ok" ? "xl:w-fit" : "xl:flex-1")}
+          aria-live="polite"
+        >
           {/* The first evaluation of a category is a live model call — a few
               seconds, against a card row that is about to appear. The loader
               holds roughly that space so the panel doesn't jump. */}
